@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { PERSONAS } from './ergonomics/constants';
-import { useConfigStore } from './store/useConfigStore';
+import { useConfigStore, type AppTab } from './store/useConfigStore';
 import { consumeShareHash } from './share/shareUrl';
 import { AboutModal } from './ui/AboutModal';
 import { ControlPanel } from './ui/ControlPanel';
@@ -24,6 +24,18 @@ import { SensorScene } from './sensor/SensorScene';
 import { SpeakerControls } from './speaker/SpeakerControls';
 import { SpeakerScene } from './speaker/SpeakerScene';
 import './App.css';
+
+// Short chips for the bar; the full name lives in the tooltip and the spec
+// sheet. Six verbose labels wrapped inside their own buttons and pushed the
+// unit toggle off the edge.
+const TABS: { id: AppTab; label: string; title: string }[] = [
+  { id: 'placement', label: 'Placement', title: 'Monitor Placement — wall-mounted screen' },
+  { id: 'table', label: 'Table', title: 'Table Monitor — horizontal touchscreen' },
+  { id: 'dvled', label: 'LED Wall', title: 'LED Display preview — pitch, cabinets & viewing distance' },
+  { id: 'projection', label: 'Projection', title: 'Projection — throw distance & brightness' },
+  { id: 'sensor', label: 'Sensors', title: 'Sensor Coverage — FOV, range & blind zones' },
+  { id: 'speaker', label: 'Speakers', title: 'Speaker SPL coverage' },
+];
 
 export default function App() {
   const cameraView = useConfigStore((s) => s.cameraView);
@@ -66,45 +78,21 @@ export default function App() {
           <strong>Interactive Installation Multitool</strong>
           <span className="tag">{tag}</span>
         </div>
-        <div className="topbar-controls">
+        <nav className="topbar-tabs">
           <span className="seg tabs">
-            <button
-              className={isPlacement ? 'on' : ''}
-              onClick={() => set('appTab', 'placement')}
-            >
-              Monitor Placement
-            </button>
-            <button
-              className={isTable ? 'on' : ''}
-              onClick={() => set('appTab', 'table')}
-            >
-              Table Monitor
-            </button>
-            <button
-              className={isDvled ? 'on' : ''}
-              onClick={() => set('appTab', 'dvled')}
-            >
-              LED Display preview
-            </button>
-            <button
-              className={isProjection ? 'on' : ''}
-              onClick={() => set('appTab', 'projection')}
-            >
-              Projection
-            </button>
-            <button
-              className={isSensor ? 'on' : ''}
-              onClick={() => set('appTab', 'sensor')}
-            >
-              Sensor Coverage
-            </button>
-            <button
-              className={isSpeaker ? 'on' : ''}
-              onClick={() => set('appTab', 'speaker')}
-            >
-              Speaker SPL
-            </button>
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                className={appTab === t.id ? 'on' : ''}
+                title={t.title}
+                onClick={() => set('appTab', t.id)}
+              >
+                {t.label}
+              </button>
+            ))}
           </span>
+        </nav>
+        <div className="topbar-controls">
           {(isPlacement || isTable) && (
             <span className="seg">
               <button className={!is2d ? 'on' : ''} onClick={() => set('stageView', '3d')}>
@@ -118,11 +106,14 @@ export default function App() {
           {isPlacement && !is2d && (
             <button
               className={`view-toggle ${fp ? 'on' : ''}`}
+              title={
+                fp
+                  ? 'Back to the orbiting room view'
+                  : `Look from ${PERSONAS[personaId].label}'s eye height`
+              }
               onClick={() => set('cameraView', fp ? 'orbit' : 'first-person')}
             >
-              {fp
-                ? '← Back to room view'
-                : `👁 View from ${PERSONAS[personaId].label.split(' ')[0]}'s eyes`}
+              {fp ? '← Room view' : `👁 ${PERSONAS[personaId].label.split(' ')[0]}'s eyes`}
             </button>
           )}
           <UnitToggle />
