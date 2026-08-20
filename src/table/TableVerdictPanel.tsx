@@ -12,9 +12,9 @@ const REASON_ICON = { good: '✓', caution: '!', bad: '✕' } as const;
  *  verdict in a memo — a fresh object from a selector loops getSnapshot. */
 export function TableVerdictPanel() {
   const units = useConfigStore((s) => s.units);
-  const diagonal = useConfigStore((s) => s.diagonal);
-  const aspectW = useConfigStore((s) => s.aspectW);
-  const aspectH = useConfigStore((s) => s.aspectH);
+  const diagonal = useConfigStore((s) => s.tableDiagonal);
+  const aspectW = useConfigStore((s) => s.tableAspectW);
+  const aspectH = useConfigStore((s) => s.tableAspectH);
   const tableHeight = useConfigStore((s) => s.tableHeight);
   const tableBezel = useConfigStore((s) => s.tableBezel);
   const personaId = useConfigStore((s) => s.personaId);

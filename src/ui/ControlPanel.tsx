@@ -4,14 +4,45 @@ import { fromInches, lenUnit, toInches } from './units';
 import { ContentUpload } from './ContentUpload';
 import { DimensionControls } from './DimensionControls';
 
-const PRESETS: { label: string; diagonal: number; aspectW: number; aspectH: number }[] = [
-  { label: '32" portrait kiosk', diagonal: 32, aspectW: 9, aspectH: 16 },
-  { label: '43" display', diagonal: 43, aspectW: 16, aspectH: 9 },
-  { label: '55" 4K', diagonal: 55, aspectW: 16, aspectH: 9 },
-  { label: '65" 4K', diagonal: 65, aspectW: 16, aspectH: 9 },
-  { label: '86" 4K', diagonal: 86, aspectW: 16, aspectH: 9 },
-  { label: '12 ft LED wall', diagonal: 165, aspectW: 16, aspectH: 9 },
+type Preset = { label: string; diagonal: number; aspectW: number; aspectH: number };
+
+// Every commodity panel size, so you can walk the range rather than jump it.
+const PRESET_GROUPS: { group: string; items: Preset[] }[] = [
+  {
+    group: 'Landscape',
+    items: [
+      { label: '24" monitor', diagonal: 24, aspectW: 16, aspectH: 9 },
+      { label: '27" monitor', diagonal: 27, aspectW: 16, aspectH: 9 },
+      { label: '32" display', diagonal: 32, aspectW: 16, aspectH: 9 },
+      { label: '43" display', diagonal: 43, aspectW: 16, aspectH: 9 },
+      { label: '50" display', diagonal: 50, aspectW: 16, aspectH: 9 },
+      { label: '55" 4K', diagonal: 55, aspectW: 16, aspectH: 9 },
+      { label: '65" 4K', diagonal: 65, aspectW: 16, aspectH: 9 },
+      { label: '75" 4K', diagonal: 75, aspectW: 16, aspectH: 9 },
+      { label: '86" 4K', diagonal: 86, aspectW: 16, aspectH: 9 },
+      { label: '98" 4K', diagonal: 98, aspectW: 16, aspectH: 9 },
+    ],
+  },
+  {
+    group: 'Portrait',
+    items: [
+      { label: '32" portrait kiosk', diagonal: 32, aspectW: 9, aspectH: 16 },
+      { label: '43" portrait kiosk', diagonal: 43, aspectW: 9, aspectH: 16 },
+      { label: '55" portrait kiosk', diagonal: 55, aspectW: 9, aspectH: 16 },
+      { label: '75" portrait kiosk', diagonal: 75, aspectW: 9, aspectH: 16 },
+    ],
+  },
+  {
+    group: 'Large format',
+    items: [
+      { label: '8 ft LED wall', diagonal: 110, aspectW: 16, aspectH: 9 },
+      { label: '12 ft LED wall', diagonal: 165, aspectW: 16, aspectH: 9 },
+      { label: '16 ft LED wall', diagonal: 220, aspectW: 16, aspectH: 9 },
+    ],
+  },
 ];
+
+const PRESETS: Preset[] = PRESET_GROUPS.flatMap((g) => g.items);
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -43,15 +74,26 @@ export function ControlPanel() {
           }}
         >
           <option value="">Choose…</option>
-          {PRESETS.map((p, i) => (
-            <option key={p.label} value={i}>
-              {p.label}
-            </option>
+          {PRESET_GROUPS.map((g) => (
+            <optgroup key={g.group} label={g.group}>
+              {g.items.map((p) => (
+                <option key={p.label} value={PRESETS.indexOf(p)}>
+                  {p.label}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
       </Row>
 
-      <DimensionControls />
+      <DimensionControls
+        value={{ diagonal: s.diagonal, aspectW: s.aspectW, aspectH: s.aspectH }}
+        onChange={(d) => {
+          s.set('diagonal', d.diagonal);
+          s.set('aspectW', d.aspectW);
+          s.set('aspectH', d.aspectH);
+        }}
+      />
 
       <div className="field">
         <div className="field-head">

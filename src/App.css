@@ -178,6 +178,11 @@ button.ghost { width: 100%; margin-top: 6px; background: transparent; }
   paint-order: stroke; stroke: rgba(0,0,0,.6); stroke-width: 2.5px;
 }
 .dvled-overlay-label.strong { font-size: 12px; }
+/* Cabinet ids sit on the wall itself, so they read quieter than the scale labels. */
+.dvled-overlay-label.cab {
+  fill: rgba(233,242,250,.72); font-weight: 600; font-size: 10px;
+  stroke: rgba(0,0,0,.45); stroke-width: 2px;
+}
 
 .dvled-readout {
   border-top: 1px solid var(--line); background: var(--panel);
@@ -199,6 +204,7 @@ button.ghost { width: 100%; margin-top: 6px; background: transparent; }
 .dvled-metrics > div { background: var(--panel-2); border-radius: 8px; padding: 7px 12px; min-width: 120px; }
 .dvled-metrics dt { color: var(--muted); font-size: 11px; }
 .dvled-metrics dd { margin: 2px 0 0; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.dvled-metrics .dvled-metric-sub { color: var(--muted); font-size: 12px; font-weight: 500; }
 .dvled-note { color: var(--muted); font-size: 12px; margin: 0; max-width: 720px; }
 
 /* ---- sensor: per-body-part coverage chips ---- */

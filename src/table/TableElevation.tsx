@@ -33,7 +33,7 @@ export function TableElevation() {
   const s = useConfigStore();
   const persona = PERSONAS[s.personaId];
   const units = s.units;
-  const size = sizeFromDiagonal(s.diagonal, s.aspectW, s.aspectH);
+  const size = sizeFromDiagonal(s.tableDiagonal, s.tableAspectW, s.tableAspectH);
   const svgRef = useRef<SVGSVGElement>(null);
 
   const tableH = s.tableHeight;
@@ -94,7 +94,7 @@ export function TableElevation() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `table-elevation-${Math.round(s.diagonal)}in.svg`;
+    a.download = `table-elevation-${Math.round(s.tableDiagonal)}in.svg`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -170,7 +170,7 @@ export function TableElevation() {
         {/* active screen (edge-on), offset back by the border */}
         <line x1={X(bezel)} y1={Y(tableH)} x2={X(bezel + depth)} y2={Y(tableH)} stroke={ACCENT} strokeWidth={2.6} strokeLinecap="round" />
         <text x={X(outerDepth) + 4} y={Y(tableH) - 2} fontSize={FS} fill={ACCENT} style={haloStyle}>
-          {`${Math.round(s.diagonal)}" table`}
+          {`${Math.round(s.tableDiagonal)}" table`}
         </text>
 
         {/* line of sight (look-down) from eye to screen center */}
@@ -202,7 +202,7 @@ export function TableElevation() {
           y={mT}
           rows={[
             ['Type', 'Table (flat)'],
-            ['Screen', `${Math.round(s.diagonal)}"  ${s.aspectW}:${s.aspectH}`],
+            ['Screen', `${Math.round(s.tableDiagonal)}"  ${s.tableAspectW}:${s.tableAspectH}`],
             ['Screen depth', fmtLen(depth, units)],
             ['Border', fmtLen(bezel, units)],
             ['Surface height', fmtLen(tableH, units)],

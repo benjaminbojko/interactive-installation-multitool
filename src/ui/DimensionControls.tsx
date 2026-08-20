@@ -72,24 +72,28 @@ const ASPECT_PRESETS: [number, number][] = [
   [21, 9],
 ];
 
-export function DimensionControls({ note }: { note?: React.ReactNode }) {
-  const diagonal = useConfigStore((s) => s.diagonal);
-  const aspectW = useConfigStore((s) => s.aspectW);
-  const aspectH = useConfigStore((s) => s.aspectH);
+/** Each screen tab owns its own {diagonal, aspectW, aspectH} trio in the store,
+ *  so the caller supplies the value and the writer — this component holds no
+ *  screen state of its own beyond the aspect lock. */
+export function DimensionControls({
+  value,
+  onChange,
+  note,
+}: {
+  value: Dims;
+  onChange: (d: Dims) => void;
+  note?: React.ReactNode;
+}) {
   const units = useConfigStore((s) => s.units);
-  const set = useConfigStore((s) => s.set);
   const metric = units === 'metric';
   const [lock, setLock] = useState(true);
 
-  const cur: Dims = { diagonal, aspectW, aspectH };
+  const { diagonal, aspectW, aspectH } = value;
+  const cur: Dims = value;
   const size = sizeFromDiagonal(diagonal, aspectW, aspectH);
   const unit = metric ? 'm' : 'in';
 
-  const apply = (d: Dims) => {
-    set('diagonal', d.diagonal);
-    set('aspectW', d.aspectW);
-    set('aspectH', d.aspectH);
-  };
+  const apply = onChange;
 
   return (
     <div className="dims">
