@@ -79,7 +79,8 @@ function Table({
   bezelFt: number;
   topY: number;
 }) {
-  const { diagonal, aspectW, aspectH, tableHeight, tableBezel, personaId, tableShowReach, tableSeats, contentUrl } =
+  const { tableDiagonal: diagonal, tableAspectW: aspectW, tableAspectH: aspectH,
+    tableHeight, tableBezel, personaId, tableShowReach, tableSeats, contentUrl } =
     useConfigStore();
 
   // Procedural test pattern (default), regenerated when the screen changes.
@@ -276,7 +277,8 @@ function CameraRig({ widthFt, depthFt, topY }: { widthFt: number; depthFt: numbe
 }
 
 export function TableScene() {
-  const { diagonal, aspectW, aspectH, tableHeight, tableBezel } = useConfigStore();
+  const { tableDiagonal: diagonal, tableAspectW: aspectW, tableAspectH: aspectH, tableHeight, tableBezel } =
+    useConfigStore();
   const size = sizeFromDiagonal(diagonal, aspectW, aspectH);
   const widthFt = f(size.width); // along x, the near edge
   const depthFt = f(size.height); // along z, reach-across

@@ -6,6 +6,7 @@
 
 import { PERSONAS } from '../ergonomics/constants';
 import { sizeFromDiagonal } from '../ergonomics/engine';
+import { ledBuild } from '../dvled/cabinets';
 import { dvledMetrics } from '../dvled/optics';
 import {
   projectionMetrics,
@@ -99,7 +100,8 @@ export function buildSpecModel(s: ConfigState): SpecModel {
     id: 'table',
     title: TAB_TITLE.table,
     rows: [
-      ['Screen', `${Math.round(s.diagonal)}"  ${formatAspect(s.aspectW, s.aspectH)}`],
+      ['Screen', `${Math.round(s.tableDiagonal)}"  ${formatAspect(s.tableAspectW, s.tableAspectH)}`],
+      ['Horizontal pixels', s.tableHorizontalPixels.toLocaleString()],
       ['Surface height', fmtLen(s.tableHeight, u)],
       ['Bezel / frame', fmtLen(s.tableBezel, u)],
       ['People around table', String(s.tableSeats)],
@@ -108,14 +110,41 @@ export function buildSpecModel(s: ConfigState): SpecModel {
   };
 
   // --- LED Display ---
-  const led = dvledMetrics(size.width, size.height, s.pitchMm, s.dvledDistance, s.dvledFov);
+  // The buildable wall, not the typed target: cabinet counts rounded up, whole
+  // pixels per cabinet, and the true pitch those imply.
+  const build = ledBuild({
+    sizeMode: s.ledSizeMode,
+    diagonal: s.ledDiagonal,
+    aspectW: s.ledAspectW,
+    aspectH: s.ledAspectH,
+    cabinetW: s.ledCabinetW,
+    cabinetH: s.ledCabinetH,
+    cols: s.ledCabCols,
+    rows: s.ledCabRows,
+    pitchMm: s.ledPitchMm,
+  });
+  const led = dvledMetrics(
+    build.builtWidthIn,
+    build.builtHeightIn,
+    build.pitchMm,
+    s.dvledDistance,
+    s.dvledFov,
+  );
   const dvled: SpecSection = {
     id: 'dvled',
     title: TAB_TITLE.dvled,
     rows: [
-      ['Wall', `${Math.round(s.diagonal)}"  ${formatAspect(s.aspectW, s.aspectH)}`],
-      ['Pixel pitch', `${s.pitchMm} mm`],
-      ['Native resolution', `${round(led.nativeCols)} × ${round(led.nativeRows)}`],
+      ['Wall', `${fmtDist(build.builtWidthIn, u)} × ${fmtDist(build.builtHeightIn, u)}`],
+      ['Cabinet', `${s.ledCabinetW} × ${s.ledCabinetH} mm`],
+      ['Cabinet grid', `${build.cols} × ${build.rows} (${build.totalCabinets} cabinets)`],
+      ['Resolution per cabinet', `${build.pxPerCabX} × ${build.pxPerCabY} px`],
+      ['Total resolution', `${build.totalPxX.toLocaleString()} × ${build.totalPxY.toLocaleString()}`],
+      [
+        'Pixel pitch',
+        `P${build.pitchMm.toFixed(3)}${
+          Math.abs(build.pitchMm - build.nominalPitchMm) > 0.005 ? ` (nominal ${build.nominalPitchMm})` : ''
+        }`,
+      ],
       ['Viewer distance', fmtDist(s.dvledDistance, u)],
       ['Field of view', `${Math.round(s.dvledFov)}°`],
       ['Pixels per degree', round(led.ppd)],

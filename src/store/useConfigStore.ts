@@ -25,6 +25,8 @@ export type MountType = 'wall' | 'stand';
 export type PinMode = 'distance' | 'width';
 export type SurfaceView = 'heatmap' | 'content';
 export type LensOrigin = 'center' | 'top';
+export type LedSizeMode = 'dimensions' | 'cabinets';
+export type LedView = 'content' | 'cabinets';
 
 export interface ConfigState {
   // --- screen ---
@@ -36,6 +38,12 @@ export interface ConfigState {
   tiltDeg: number; // back-tilt of the screen; 0 = vertical
 
   // --- table (horizontal touchscreen) ---
+  // The table owns its screen outright — a tabletop panel has nothing to do with
+  // the wall-mounted one, and inheriting its size was the confusing part.
+  tableDiagonal: number; // in
+  tableAspectW: number;
+  tableAspectH: number;
+  tableHorizontalPixels: number; // native pixels across the table screen
   tableHeight: number; // in AFF, surface height for the table tab
   tableBezel: number; // in, border/frame width around the screen (0–12)
   tableShowReach: boolean; // overlay the reach heatmap on the surface
@@ -70,6 +78,18 @@ export interface ConfigState {
   screenPpi: number | null; // calibrated PPI of the DESIGNER's own display (true-scale)
 
   // --- LED Display preview ---
+  // Also its own screen: an LED wall is sized in cabinets, not in the diagonal
+  // you'd quote for a flat panel, so it never tracks the placement tab.
+  ledDiagonal: number; // in — the TARGET size ('dimensions' mode)
+  ledAspectW: number;
+  ledAspectH: number;
+  ledPitchMm: number; // NOMINAL pitch; the built pitch comes from the cabinet
+  ledSizeMode: LedSizeMode; // drive the wall by dimensions, or by cabinet count
+  ledCabinetW: number; // mm
+  ledCabinetH: number; // mm
+  ledCabCols: number; // cabinets across ('cabinets' mode)
+  ledCabRows: number; // cabinets down ('cabinets' mode)
+  ledView: LedView; // show content, or the bare cabinet layout
   dvledDistance: number; // in (eye-to-wall for the preview tab)
   dvledFov: number; // deg, horizontal field of view shown
   fillFactor: number; // 0–1, LED emitter coverage of its cell (manual override)
@@ -160,6 +180,10 @@ export const INITIAL: ConfigData = {
   mountType: 'wall',
   tiltDeg: 0,
 
+  tableDiagonal: 43,
+  tableAspectW: 16,
+  tableAspectH: 9,
+  tableHorizontalPixels: 3840,
   tableHeight: DEFAULT_TABLE_HEIGHT,
   tableBezel: 1.5,
   tableShowReach: true,
@@ -193,6 +217,18 @@ export const INITIAL: ConfigData = {
   typeShowSpecimen: false,
   screenPpi: null,
 
+  // The 12 ft lobby wall — where the LED tab always starts, regardless of what
+  // the other tabs are set to. 165" 16:9 fits an 8 × 5 grid of 500 mm cabinets.
+  ledDiagonal: 165,
+  ledAspectW: 16,
+  ledAspectH: 9,
+  ledPitchMm: 2.5,
+  ledSizeMode: 'dimensions',
+  ledCabinetW: 500,
+  ledCabinetH: 500,
+  ledCabCols: 8,
+  ledCabRows: 5,
+  ledView: 'content',
   dvledDistance: 120, // 10 ft
   dvledFov: 40,
   fillFactor: 0.55,

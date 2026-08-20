@@ -15,6 +15,23 @@ import { fmtLen, fromInches, toInches } from '../ui/units';
 
 const PERSONA_IDS: PersonaId[] = ['adult', 'child', 'wheelchair'];
 
+// Screen sizes that actually get laid flat in a table. Its own list — a table
+// panel has nothing to do with whatever the wall-mount tab is set to.
+const SIZE_PRESETS: { label: string; diagonal: number; aspectW: number; aspectH: number }[] = [
+  { label: '15.6" panel', diagonal: 15.6, aspectW: 16, aspectH: 9 },
+  { label: '21.5" panel', diagonal: 21.5, aspectW: 16, aspectH: 9 },
+  { label: '24" panel', diagonal: 24, aspectW: 16, aspectH: 9 },
+  { label: '27" panel', diagonal: 27, aspectW: 16, aspectH: 9 },
+  { label: '27" 3:2 panel', diagonal: 27, aspectW: 3, aspectH: 2 },
+  { label: '32" panel', diagonal: 32, aspectW: 16, aspectH: 9 },
+  { label: '32" 4:3 panel', diagonal: 32, aspectW: 4, aspectH: 3 },
+  { label: '43" table', diagonal: 43, aspectW: 16, aspectH: 9 },
+  { label: '55" table', diagonal: 55, aspectW: 16, aspectH: 9 },
+  { label: '65" table', diagonal: 65, aspectW: 16, aspectH: 9 },
+  { label: '75" table', diagonal: 75, aspectW: 16, aspectH: 9 },
+  { label: '86" table', diagonal: 86, aspectW: 16, aspectH: 9 },
+];
+
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="row">
@@ -32,17 +49,15 @@ export function TableControls() {
   // Primitive selectors only, then derive the verdict in a memo (a fresh object
   // from a selector triggers an infinite getSnapshot loop — see VerdictPanel).
   const units = useConfigStore((s) => s.units);
-  const diagonal = useConfigStore((s) => s.diagonal);
-  const aspectW = useConfigStore((s) => s.aspectW);
-  const aspectH = useConfigStore((s) => s.aspectH);
+  const diagonal = useConfigStore((s) => s.tableDiagonal);
+  const aspectW = useConfigStore((s) => s.tableAspectW);
+  const aspectH = useConfigStore((s) => s.tableAspectH);
   const tableHeight = useConfigStore((s) => s.tableHeight);
   const tableBezel = useConfigStore((s) => s.tableBezel);
   const tableShowReach = useConfigStore((s) => s.tableShowReach);
   const tableSeats = useConfigStore((s) => s.tableSeats);
   const personaId = useConfigStore((s) => s.personaId);
-  const resMode = useConfigStore((s) => s.resMode);
-  const horizontalPixels = useConfigStore((s) => s.horizontalPixels);
-  const pitchMm = useConfigStore((s) => s.pitchMm);
+  const horizontalPixels = useConfigStore((s) => s.tableHorizontalPixels);
   const strictness = useConfigStore((s) => s.strictness);
   const set = useConfigStore((s) => s.set);
 
@@ -55,11 +70,10 @@ export function TableControls() {
         tableHeight,
         bezel: tableBezel,
         personaId,
-        horizontalPixels: resMode === 'pixels' ? horizontalPixels : undefined,
-        pitchMm: resMode === 'pitch' ? pitchMm : undefined,
+        horizontalPixels,
         strictness,
       }),
-    [diagonal, aspectW, aspectH, tableHeight, tableBezel, personaId, resMode, horizontalPixels, pitchMm, strictness],
+    [diagonal, aspectW, aspectH, tableHeight, tableBezel, personaId, horizontalPixels, strictness],
   );
 
   // Border slider bounds in the active unit (0–12" / 0–30 cm).
@@ -132,7 +146,33 @@ export function TableControls() {
         </div>
 
         <h2>Screen</h2>
+        <Row label="Preset">
+          <select
+            value=""
+            onChange={(e) => {
+              const p = SIZE_PRESETS[Number(e.target.value)];
+              if (!p) return;
+              set('tableDiagonal', p.diagonal);
+              set('tableAspectW', p.aspectW);
+              set('tableAspectH', p.aspectH);
+            }}
+          >
+            <option value="">Choose…</option>
+            {SIZE_PRESETS.map((p, i) => (
+              <option key={p.label} value={i}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+        </Row>
+
         <DimensionControls
+          value={{ diagonal, aspectW, aspectH }}
+          onChange={(d) => {
+            set('tableDiagonal', d.diagonal);
+            set('tableAspectW', d.aspectW);
+            set('tableAspectH', d.aspectH);
+          }}
           note={
             <p className="hint">
               Laid flat, the screen's shorter dimension lies away from you — that's the{' '}
@@ -146,11 +186,8 @@ export function TableControls() {
           <input
             type="number"
             min={0}
-            value={resMode === 'pixels' ? horizontalPixels : ''}
-            onChange={(e) => {
-              set('resMode', 'pixels');
-              set('horizontalPixels', Number(e.target.value));
-            }}
+            value={horizontalPixels}
+            onChange={(e) => set('tableHorizontalPixels', Number(e.target.value))}
           />
         </Row>
 
