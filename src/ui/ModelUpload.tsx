@@ -76,6 +76,12 @@ export function ModelUpload() {
     set('projCanvasType', 'model');
   }
 
+  function handleReset() {
+    set('projModelScale', 1.0);
+    set('projModelRotY', 0);
+    set('projModelOffset', [0, 0, 0]);
+  }
+
   return (
     <div className="model-upload">
       <input
@@ -87,11 +93,16 @@ export function ModelUpload() {
       />
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
         <button className="ghost" onClick={() => inputRef.current?.click()}>
-          {modelUrl ? 'Replace 3D Model' : 'Upload 3D Model (.glb, .gltf, .fbx)'}
+          Open...
         </button>
         {!modelUrl && (
           <button className="ghost" onClick={handleSampleModel}>
             Sample Model
+          </button>
+        )}
+        {modelUrl && (
+          <button className="ghost" onClick={handleReset}>
+            Reset
           </button>
         )}
         {modelUrl && (
