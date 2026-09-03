@@ -83,7 +83,7 @@ export function ModelUpload() {
   }
 
   return (
-    <div className="model-upload">
+    <div className="model-upload" title="Loaded into memory only — nothing uploaded to servers.">
       <input
         ref={inputRef}
         type="file"
@@ -111,9 +111,6 @@ export function ModelUpload() {
           </button>
         )}
       </div>
-      <p className="hint" style={{ margin: '0 0 12px 0' }}>
-        Loaded into memory only — nothing uploaded to servers.
-      </p>
 
       {modelUrl && (
         <div className="model-controls">

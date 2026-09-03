@@ -18,9 +18,17 @@ const PRESETS: {
   { label: 'Long-throw event — 2.5 / 20k lm', throw: 2.5, lumens: 20000, resW: 1920, resH: 1200 },
 ];
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function Row({
+  label,
+  title,
+  children,
+}: {
+  label: string;
+  title?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <label className="row">
+    <label className="row" title={title}>
       <span className="row-label">{label}</span>
       <span className="row-control">{children}</span>
     </label>
@@ -162,27 +170,24 @@ export function ProjectionControls() {
       </Row>
 
       {s.projectorCount > 1 && (
-        <>
-          <Row label="Stack efficiency">
-            <span className="num-entry">
-              <input
-                type="number"
-                step={1}
-                min={0}
-                max={100}
-                value={Math.round(s.projStackEff * 100)}
-                onChange={(e) =>
-                  s.set('projStackEff', Math.min(1, Math.max(0, Number(e.target.value) / 100)))
-                }
-              />
-              <span className="unit">%</span>
-            </span>
-          </Row>
-          <p className="hint">
-            Lumens each added unit really contributes — real stacks lose ~10% to
-            alignment, so 2× ≈ 1.9×, not 2×.
-          </p>
-        </>
+        <Row
+          label="Stack efficiency"
+          title="Lumens each added unit really contributes — real stacks lose ~10% to alignment, so 2× ≈ 1.9×, not 2×."
+        >
+          <span className="num-entry">
+            <input
+              type="number"
+              step={1}
+              min={0}
+              max={100}
+              value={Math.round(s.projStackEff * 100)}
+              onChange={(e) =>
+                s.set('projStackEff', Math.min(1, Math.max(0, Number(e.target.value) / 100)))
+              }
+            />
+            <span className="unit">%</span>
+          </span>
+        </Row>
       )}
 
       <Row label="Blended array">
@@ -200,28 +205,24 @@ export function ProjectionControls() {
       </Row>
 
       {s.projArrayCount > 1 && (
-        <>
-          <div className="field">
-            <div className="field-head">
-              <span className="row-label">Overlap</span>
-              <span className="num-readout">{s.projArrayOverlapPct}%</span>
-            </div>
-            <input
-              className="slider"
-              type="range"
-              min={0}
-              max={50}
-              step={1}
-              value={s.projArrayOverlapPct}
-              onChange={(e) => s.set('projArrayOverlapPct', Number(e.target.value))}
-            />
+        <div
+          className="field"
+          title={`Projectors side by side, each overlapping its neighbour. Total width = ${s.projArrayCount}× one image minus the overlaps; the seams run ~2× bright until an edge-blend curve tapers them.`}
+        >
+          <div className="field-head">
+            <span className="row-label">Overlap</span>
+            <span className="num-readout">{s.projArrayOverlapPct}%</span>
           </div>
-          <p className="hint">
-            Projectors side by side, each overlapping its neighbour. Total width ={' '}
-            {s.projArrayCount}× one image minus the overlaps; the seams run ~2× bright
-            until an edge-blend curve tapers them.
-          </p>
-        </>
+          <input
+            className="slider"
+            type="range"
+            min={0}
+            max={50}
+            step={1}
+            value={s.projArrayOverlapPct}
+            onChange={(e) => s.set('projArrayOverlapPct', Number(e.target.value))}
+          />
+        </div>
       )}
 
       <Row label="Aspect">
@@ -279,7 +280,10 @@ export function ProjectionControls() {
 
       <h2>Geometry</h2>
 
-      <Row label="Drive by">
+      <Row
+        label="Drive by"
+        title="Throw ratio links width and distance — pin one, the other follows."
+      >
         <span className="seg sm">
           <button
             className={pinDistance ? 'on' : ''}
@@ -357,9 +361,6 @@ export function ProjectionControls() {
           </Row>
         </>
       )}
-      <p className="hint">
-        Throw ratio links width and distance — pin one, the other follows.
-      </p>
 
       <div className="field">
         <div className="field-head">
@@ -394,7 +395,10 @@ export function ProjectionControls() {
         </span>
       </Row>
 
-      <div className="field">
+      <div
+        className="field"
+        title="Optical shift — moves the image up (+) or down (−) with no keystone. 0% sits at the lens origin above."
+      >
         <div className="field-head">
           <span className="row-label">Vertical lens shift</span>
           <span className="num-readout">{s.projLensShiftPct > 0 ? '+' : ''}{s.projLensShiftPct}%</span>
@@ -408,13 +412,12 @@ export function ProjectionControls() {
           value={s.projLensShiftPct}
           onChange={(e) => s.set('projLensShiftPct', Number(e.target.value))}
         />
-        <p className="hint">
-          Optical shift — moves the image up (+) or down (−) with no keystone.
-          0% sits at the lens origin above.
-        </p>
       </div>
 
-      <div className="field">
+      <div
+        className="field"
+        title="Physically tilting the projector — this is what bends the image into a keystone."
+      >
         <div className="field-head">
           <span className="row-label">Tilt</span>
           <span className="num-readout">{s.projTiltDeg}°</span>
@@ -428,15 +431,14 @@ export function ProjectionControls() {
           value={s.projTiltDeg}
           onChange={(e) => s.set('projTiltDeg', Number(e.target.value))}
         />
-        <p className="hint">
-          Physically tilting the projector — this is what bends the image into a
-          keystone.
-        </p>
       </div>
 
       <h2>Environment</h2>
 
-      <div className="field">
+      <div
+        className="field"
+        title="Foot-candles of competing room light. The image needs to out-shine it."
+      >
         <div className="field-head">
           <span className="row-label">Ambient light</span>
           <span className="num-readout">{s.projAmbientFc} fc</span>
@@ -450,9 +452,6 @@ export function ProjectionControls() {
           value={s.projAmbientFc}
           onChange={(e) => s.set('projAmbientFc', Number(e.target.value))}
         />
-        <p className="hint">
-          Foot-candles of competing room light. The image needs to out-shine it.
-        </p>
       </div>
 
       <h2>Surface</h2>
@@ -563,7 +562,10 @@ export function ProjectionControls() {
         </>
       )}
 
-      <Row label="Screen gain">
+      <Row
+        label="Screen gain"
+        title="Luminance (foot-Lamberts) = brightness (fc) × gain. 1.0 = matte white."
+      >
         <span className="num-entry">
           <input
             type="number"
@@ -575,9 +577,6 @@ export function ProjectionControls() {
           <span className="unit">×</span>
         </span>
       </Row>
-      <p className="hint">
-        Luminance (foot-Lamberts) = brightness (fc) × gain. 1.0 = matte white.
-      </p>
 
       <Row label="Show">
         <span className="seg sm">

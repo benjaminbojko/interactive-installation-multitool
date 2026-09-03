@@ -25,7 +25,7 @@ export function ContentUpload() {
   }
 
   return (
-    <div className="upload">
+    <div className="upload" title="Stays in your browser — nothing is uploaded.">
       <input
         ref={inputRef}
         type="file"
@@ -41,7 +41,6 @@ export function ContentUpload() {
           Clear
         </button>
       )}
-      <p className="hint">Stays in your browser — nothing is uploaded.</p>
     </div>
   );
 }
