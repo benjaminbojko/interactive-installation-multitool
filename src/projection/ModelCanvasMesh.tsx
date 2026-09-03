@@ -18,8 +18,6 @@ interface ModelCanvasMeshProps {
   mat: THREE.ShaderMaterial;
   shadowPass: ProjectorShadowPass;
   specs: ProjectorSpec[];
-  wallHeightFt: number;
-  centerY: number;
 }
 
 interface ModelRendererProps extends ModelCanvasMeshProps {
@@ -31,8 +29,6 @@ function ModelRenderer({
   mat,
   shadowPass,
   specs,
-  wallHeightFt,
-  centerY,
 }: ModelRendererProps) {
   const modelScale = useConfigStore((s) => s.projModelScale);
   const modelOffset = useConfigStore((s) => s.projModelOffset);
@@ -62,7 +58,9 @@ function ModelRenderer({
     return { root, size, center, baseHeight };
   }, [scene, mat]);
 
-  const targetHeight = wallHeightFt * modelScale;
+  // Life-size 6.0 ft reference height for 1x scale, completely decoupled from projector throw
+  const REFERENCE_MODEL_HEIGHT_FT = 6.0;
+  const targetHeight = REFERENCE_MODEL_HEIGHT_FT * modelScale;
   const scale = targetHeight / prep.baseHeight;
 
   useFrame(({ gl }) => {
@@ -73,10 +71,10 @@ function ModelRenderer({
   return (
     <group
       ref={groupRef}
-      position={[ftFromIn(modelOffset[0]), centerY + ftFromIn(modelOffset[1]), ftFromIn(modelOffset[2])]}
+      position={[ftFromIn(modelOffset[0]), ftFromIn(modelOffset[1]), ftFromIn(modelOffset[2])]}
       rotation={[0, (modelRotY * Math.PI) / 180, 0]}
     >
-      <group position={[-prep.center.x * scale, -prep.center.y * scale, -prep.center.z * scale]} scale={scale}>
+      <group position={[-prep.center.x * scale, -prep.center.y * scale + targetHeight / 2, -prep.center.z * scale]} scale={scale}>
         <primitive object={prep.root} />
       </group>
     </group>

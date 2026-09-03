@@ -544,6 +544,22 @@ export function ProjectionControls() {
               onChange={(e) => s.set('projCurvedArcDeg', Number(e.target.value))}
             />
           </div>
+
+          <div className="field">
+            <div className="field-head">
+              <span className="row-label">Screen height</span>
+              <span className="num-readout">{fmtDist(s.projCanvasHeight, units)}</span>
+            </div>
+            <input
+              className="slider"
+              type="range"
+              min={metric ? 150 : 60}
+              max={metric ? 600 : 240}
+              step={metric ? 10 : 6}
+              value={round(fromInches(s.projCanvasHeight, units))}
+              onChange={(e) => s.set('projCanvasHeight', toInches(Number(e.target.value), units))}
+            />
+          </div>
         </>
       )}
 

@@ -122,6 +122,7 @@ export interface ConfigState {
   projShowFigure: boolean; // show a to-scale person for size reference
   projSurfaceView: SurfaceView; // heatmap or projected content
   projCanvasType: 'wall' | 'curved' | 'cylinder' | 'model'; // projection canvas surface
+  projCanvasHeight: number; // in, physical screen height for curved canvas
   projCurvedRadius: number; // in, radius for curved screen
   projCurvedArcDeg: number; // deg, arc span for curved screen
   projModelUrl: string | null; // blob or asset URL for 3D model canvas
@@ -267,6 +268,7 @@ export const INITIAL: ConfigData = {
   projShowFigure: true,
   projSurfaceView: 'heatmap',
   projCanvasType: 'wall',
+  projCanvasHeight: 120, // 10 ft physical height
   projCurvedRadius: 144, // 12 ft radius
   projCurvedArcDeg: 60, // 60 degree arc
   projModelUrl: null,

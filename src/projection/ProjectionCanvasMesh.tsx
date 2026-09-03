@@ -175,17 +175,26 @@ export function ProjectionCanvasMesh({
     img.src = contentUrl;
   }, [view, contentUrl, contentTex]);
 
+  const canvasHeightIn = useConfigStore((s) => s.projCanvasHeight);
+  const physicalCanvasHeightFt = canvasHeightIn / 12;
+
   const geo = useMemo(() => {
     if (canvasType === 'curved') {
-      return makeCurvedPlane(wallHeightFt, centerY, curvedRadiusFt, curvedArcDeg);
+      return makeCurvedPlane(
+        physicalCanvasHeightFt,
+        physicalCanvasHeightFt / 2,
+        curvedRadiusFt,
+        curvedArcDeg,
+      );
     }
     if (canvasType === 'cylinder') {
-      return makeColumn(Math.abs(curvedRadiusFt) / 3, wallHeightFt, centerY);
+      const COLUMN_HEIGHT_FT = 14;
+      return makeColumn(Math.abs(curvedRadiusFt) / 3, COLUMN_HEIGHT_FT, COLUMN_HEIGHT_FT / 2);
     }
     const g = new THREE.PlaneGeometry(wallWidthFt, wallHeightFt);
     g.translate(0, centerY, 0);
     return g;
-  }, [canvasType, curvedRadiusFt, curvedArcDeg, wallHeightFt, wallWidthFt, centerY]);
+  }, [canvasType, curvedRadiusFt, curvedArcDeg, physicalCanvasHeightFt, wallHeightFt, wallWidthFt, centerY]);
 
   useEffect(() => () => geo.dispose(), [geo]);
 
@@ -222,8 +231,6 @@ export function ProjectionCanvasMesh({
         mat={mat}
         shadowPass={shadowPass}
         specs={specs}
-        wallHeightFt={wallHeightFt}
-        centerY={centerY}
       />
     );
   }
