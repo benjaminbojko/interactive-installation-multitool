@@ -23,6 +23,7 @@ export interface Snapshot {
 export function withoutContent(data: Partial<ConfigData>): Partial<ConfigData> {
   const rest: Record<string, unknown> = { ...data };
   delete rest.contentUrl;
+  delete rest.projModelUrl;
   return rest as Partial<ConfigData>;
 }
 
@@ -84,8 +85,18 @@ export function validateAndApply(raw: unknown): Partial<ConfigData> {
     if (!(key in src)) continue;
     const val = src[key as string];
 
-    if (key === 'contentUrl') {
+    if (key === 'contentUrl' || key === 'projModelUrl') {
       if (val === null || typeof val === 'string') out[key] = val;
+      continue;
+    }
+    if (key === 'projModelOffset') {
+      if (
+        Array.isArray(val) &&
+        val.length === 3 &&
+        val.every((n) => typeof n === 'number' && Number.isFinite(n))
+      ) {
+        out[key] = val;
+      }
       continue;
     }
     if (key === 'speakers') {

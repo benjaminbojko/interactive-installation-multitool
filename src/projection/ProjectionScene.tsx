@@ -8,7 +8,8 @@ import { f } from '../scene/scale';
 import { makeWallGrid } from '../scene/wallGrid';
 import { ProjectionFigure } from './ProjectionFigure';
 import { ProjectionFrustum } from './ProjectionFrustum';
-import { ProjectionSurface } from './ProjectionSurface';
+import { ProjectionCanvasMesh } from './ProjectionCanvasMesh';
+import { buildProjectorSpecs } from './projectiveOptics';
 import {
   arrayLayout,
   BAND_LABEL,
@@ -166,8 +167,38 @@ export function ProjectionScene() {
   );
   const isArray = layout.count > 1;
 
-  const tone = BAND_TONE[metrics.band];
   const distFt = ftFromIn(s.projDistance);
+  const specs = useMemo(
+    () =>
+      buildProjectorSpecs(
+        layout.centersX,
+        distFt,
+        ftFromIn(s.projLensAff),
+        s.projTiltDeg,
+        {
+          throwRatio: s.projThrowRatio,
+          aspectW: s.projAspectW,
+          aspectH: s.projAspectH,
+          lensShiftPct: s.projLensShiftPct,
+          lensOrigin: s.projLensOrigin,
+        },
+        uRanges,
+      ),
+    [
+      layout.centersX,
+      distFt,
+      s.projLensAff,
+      s.projTiltDeg,
+      s.projThrowRatio,
+      s.projAspectW,
+      s.projAspectH,
+      s.projLensShiftPct,
+      s.projLensOrigin,
+      uRanges,
+    ],
+  );
+
+  const tone = BAND_TONE[metrics.band];
   const imgCenterY = geom.imageCenterFt;
   const halfW = arrayM.totalWidthFt / 2;
   const imageHeightFt = metrics.heightFt;
@@ -196,16 +227,21 @@ export function ProjectionScene() {
           />
           <Lights />
           <Floor />
-          <Wall width={inFromFt(arrayM.totalWidthFt)} />
+          {s.projCanvasType === 'wall' && <Wall width={inFromFt(arrayM.totalWidthFt)} />}
+          <ProjectionCanvasMesh
+            canvasType={s.projCanvasType}
+            specs={specs}
+            nominalFc={metrics.footCandles}
+            distFt={distFt}
+            overlapFrac={layout.overlapFrac}
+            wallWidthFt={arrayM.totalWidthFt}
+            wallHeightFt={metrics.heightFt}
+            centerY={imgCenterY}
+            curvedRadiusFt={ftFromIn(s.projCurvedRadius)}
+            curvedArcDeg={s.projCurvedArcDeg}
+          />
           {geoms.map((g, i) => (
-            <group key={i}>
-              <ProjectionSurface
-                geom={g}
-                footCandles={metrics.footCandles}
-                uRange={uRanges[i]}
-              />
-              <ProjectionFrustum geom={g} color={bandColor} />
-            </group>
+            <ProjectionFrustum key={i} geom={g} color={bandColor} />
           ))}
           {/* Blend seams: the overlap of two projectors runs ~2× bright before
               the blend curve tapers it — flag each seam as a hot strip. */}

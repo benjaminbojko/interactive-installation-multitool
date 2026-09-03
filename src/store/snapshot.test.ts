@@ -68,10 +68,25 @@ describe('validateAndApply', () => {
     expect('speakers' in validateAndApply({ speakers: [] })).toBe(false);
   });
 
-  it('accepts contentUrl as a string or null', () => {
+  it('accepts contentUrl and projModelUrl as a string or null', () => {
     expect(validateAndApply({ contentUrl: 'data:x' }).contentUrl).toBe('data:x');
     expect(validateAndApply({ contentUrl: null }).contentUrl).toBe(null);
     expect('contentUrl' in validateAndApply({ contentUrl: 42 })).toBe(false);
+
+    expect(validateAndApply({ projModelUrl: 'data:model' }).projModelUrl).toBe('data:model');
+    expect(validateAndApply({ projModelUrl: null }).projModelUrl).toBe(null);
+  });
+
+  it('validates projModelOffset as a 3-tuple of finite numbers', () => {
+    expect(validateAndApply({ projModelOffset: [12, -6, 24] }).projModelOffset).toEqual([12, -6, 24]);
+    expect('projModelOffset' in validateAndApply({ projModelOffset: [12, 'invalid', 24] })).toBe(false);
+    expect('projModelOffset' in validateAndApply({ projModelOffset: [12, 24] })).toBe(false);
+  });
+
+  it('validates projCanvasType enum', () => {
+    expect(validateAndApply({ projCanvasType: 'curved' }).projCanvasType).toBe('curved');
+    expect(validateAndApply({ projCanvasType: 'model' }).projCanvasType).toBe('model');
+    expect('projCanvasType' in validateAndApply({ projCanvasType: 999 })).toBe(false);
   });
 
   it('returns an empty patch for junk input', () => {
@@ -80,9 +95,10 @@ describe('validateAndApply', () => {
     expect(validateAndApply(123)).toEqual({});
   });
 
-  it('withoutContent strips only the image', () => {
-    const stripped = withoutContent({ diagonal: 60, contentUrl: 'data:x' });
+  it('withoutContent strips both contentUrl and projModelUrl', () => {
+    const stripped = withoutContent({ diagonal: 60, contentUrl: 'data:x', projModelUrl: 'blob:y' });
     expect(stripped.diagonal).toBe(60);
     expect('contentUrl' in stripped).toBe(false);
+    expect('projModelUrl' in stripped).toBe(false);
   });
 });

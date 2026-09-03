@@ -454,3 +454,5 @@ export function rampGradientCss(): string {
   );
   return `linear-gradient(90deg, ${stops.join(', ')})`;
 }
+
+export * from './projectiveOptics';

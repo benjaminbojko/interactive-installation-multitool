@@ -121,6 +121,13 @@ export interface ConfigState {
   projTiltDeg: number; // projector tilt; 0 = perpendicular, nonzero = keystone
   projShowFigure: boolean; // show a to-scale person for size reference
   projSurfaceView: SurfaceView; // heatmap or projected content
+  projCanvasType: 'wall' | 'curved' | 'cylinder' | 'model'; // projection canvas surface
+  projCurvedRadius: number; // in, radius for curved screen
+  projCurvedArcDeg: number; // deg, arc span for curved screen
+  projModelUrl: string | null; // blob or asset URL for 3D model canvas
+  projModelScale: number; // scale multiplier for 3D model
+  projModelOffset: [number, number, number]; // [x, y, z] in inches
+  projModelRotY: number; // deg, yaw rotation for 3D model
 
   // --- sensor coverage (camera / depth sensor) ---
   sensorMount: SensorMount; // ceiling / wall / floor
@@ -259,6 +266,13 @@ export const INITIAL: ConfigData = {
   projTiltDeg: 0, // perpendicular → no keystone
   projShowFigure: true,
   projSurfaceView: 'heatmap',
+  projCanvasType: 'wall',
+  projCurvedRadius: 144, // 12 ft radius
+  projCurvedArcDeg: 60, // 60 degree arc
+  projModelUrl: null,
+  projModelScale: 1.0,
+  projModelOffset: [0, 0, 0],
+  projModelRotY: 0,
 
   // Azure Kinect (NFOV) on a 9 ft ceiling aimed straight down, skeletal tracking.
   sensorMount: 'ceiling',

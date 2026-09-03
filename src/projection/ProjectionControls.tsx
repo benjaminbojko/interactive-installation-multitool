@@ -1,5 +1,6 @@
 import { useConfigStore } from '../store/useConfigStore';
 import { ContentUpload } from '../ui/ContentUpload';
+import { ModelUpload } from '../ui/ModelUpload';
 import { fmtDist, fmtLen, fromInches, toInches } from '../ui/units';
 import { distanceFromWidth, widthFromDistance } from './projectionMath';
 
@@ -455,6 +456,73 @@ export function ProjectionControls() {
       </div>
 
       <h2>Surface</h2>
+
+      <Row label="Canvas">
+        <span className="seg sm">
+          <button
+            className={s.projCanvasType === 'wall' ? 'on' : ''}
+            onClick={() => s.set('projCanvasType', 'wall')}
+          >
+            Wall
+          </button>
+          <button
+            className={s.projCanvasType === 'curved' ? 'on' : ''}
+            onClick={() => s.set('projCanvasType', 'curved')}
+          >
+            Curved
+          </button>
+          <button
+            className={s.projCanvasType === 'cylinder' ? 'on' : ''}
+            onClick={() => s.set('projCanvasType', 'cylinder')}
+          >
+            Column
+          </button>
+          <button
+            className={s.projCanvasType === 'model' ? 'on' : ''}
+            onClick={() => s.set('projCanvasType', 'model')}
+          >
+            3D Model
+          </button>
+        </span>
+      </Row>
+
+      {s.projCanvasType === 'model' && <ModelUpload />}
+
+      {s.projCanvasType === 'curved' && (
+        <>
+          <div className="field">
+            <div className="field-head">
+              <span className="row-label">Curve radius</span>
+              <span className="num-readout">{fmtDist(s.projCurvedRadius, units)}</span>
+            </div>
+            <input
+              className="slider"
+              type="range"
+              min={metric ? 150 : 60}
+              max={metric ? 1200 : 480}
+              step={metric ? 10 : 6}
+              value={round(fromInches(s.projCurvedRadius, units))}
+              onChange={(e) => s.set('projCurvedRadius', toInches(Number(e.target.value), units))}
+            />
+          </div>
+
+          <div className="field">
+            <div className="field-head">
+              <span className="row-label">Arc span</span>
+              <span className="num-readout">{s.projCurvedArcDeg}°</span>
+            </div>
+            <input
+              className="slider"
+              type="range"
+              min={20}
+              max={160}
+              step={5}
+              value={s.projCurvedArcDeg}
+              onChange={(e) => s.set('projCurvedArcDeg', Number(e.target.value))}
+            />
+          </div>
+        </>
+      )}
 
       <Row label="Screen gain">
         <span className="num-entry">
