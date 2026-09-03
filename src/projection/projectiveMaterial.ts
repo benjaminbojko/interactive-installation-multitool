@@ -62,7 +62,6 @@ float sampleShadow(int idx, vec2 uv) {
 
 void main() {
   vec3 normal = normalize(vWorldNormal);
-  if (!gl_FrontFacing) normal = -normal;
   float totalFc = 0.0;
   vec4 accumulatedContent = vec4(0.0);
   float totalWeight = 0.0;

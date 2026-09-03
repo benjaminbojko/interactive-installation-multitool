@@ -35,7 +35,6 @@ export class ProjectorShadowPass {
     renderer: THREE.WebGLRenderer,
     canvasMesh: THREE.Object3D,
     specs: ProjectorSpec[],
-    tiltDeg = 0,
   ): void {
     const prevTarget = renderer.getRenderTarget();
     canvasMesh.updateWorldMatrix(true, true);
@@ -55,9 +54,8 @@ export class ProjectorShadowPass {
 
       this.depthCamera.matrixAutoUpdate = false;
       this.depthCamera.matrixWorldAutoUpdate = false;
-      this.depthCamera.position.set(spec.lens[0], spec.lens[1], spec.lens[2]);
-      this.depthCamera.rotation.set((tiltDeg * Math.PI) / 180, 0, 0);
-      this.depthCamera.updateMatrixWorld(true);
+      this.depthCamera.matrixWorldInverse.fromArray(spec.viewMatrix);
+      this.depthCamera.matrixWorld.copy(this.depthCamera.matrixWorldInverse).invert();
       this.depthCamera.projectionMatrix.fromArray(spec.projMatrix);
       this.depthCamera.projectionMatrixInverse.copy(this.depthCamera.projectionMatrix).invert();
 

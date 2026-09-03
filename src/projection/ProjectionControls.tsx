@@ -490,10 +490,30 @@ export function ProjectionControls() {
 
       {s.projCanvasType === 'curved' && (
         <>
+          <Row label="Curvature">
+            <span className="seg sm">
+              <button
+                className={s.projCurvedRadius >= 0 ? 'on' : ''}
+                onClick={() => s.set('projCurvedRadius', Math.abs(s.projCurvedRadius) || 144)}
+              >
+                Concave
+              </button>
+              <button
+                className={s.projCurvedRadius < 0 ? 'on' : ''}
+                onClick={() => s.set('projCurvedRadius', -(Math.abs(s.projCurvedRadius) || 144))}
+              >
+                Convex
+              </button>
+            </span>
+          </Row>
+
           <div className="field">
             <div className="field-head">
               <span className="row-label">Curve radius</span>
-              <span className="num-readout">{fmtDist(s.projCurvedRadius, units)}</span>
+              <span className="num-readout">
+                {fmtDist(Math.abs(s.projCurvedRadius), units)}{' '}
+                <span style={{ opacity: 0.65 }}>({s.projCurvedRadius < 0 ? 'Convex' : 'Concave'})</span>
+              </span>
             </div>
             <input
               className="slider"
@@ -501,8 +521,11 @@ export function ProjectionControls() {
               min={metric ? 150 : 60}
               max={metric ? 1200 : 480}
               step={metric ? 10 : 6}
-              value={round(fromInches(s.projCurvedRadius, units))}
-              onChange={(e) => s.set('projCurvedRadius', toInches(Number(e.target.value), units))}
+              value={round(fromInches(Math.abs(s.projCurvedRadius), units))}
+              onChange={(e) => {
+                const sign = s.projCurvedRadius < 0 ? -1 : 1;
+                s.set('projCurvedRadius', sign * toInches(Number(e.target.value), units));
+              }}
             />
           </div>
 
@@ -515,7 +538,7 @@ export function ProjectionControls() {
               className="slider"
               type="range"
               min={20}
-              max={160}
+              max={180}
               step={5}
               value={s.projCurvedArcDeg}
               onChange={(e) => s.set('projCurvedArcDeg', Number(e.target.value))}

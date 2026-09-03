@@ -1,6 +1,6 @@
-// Renders loaded 3D models (GLTF/GLB) as projection canvas surfaces.
+// Renders loaded 3D models (GLTF/GLB/FBX) as projection canvas surfaces.
 
-import { useGLTF } from '@react-three/drei';
+import { useFBX, useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { Component, Suspense, useMemo, useRef, type ReactNode } from 'react';
 import * as THREE from 'three';
@@ -20,19 +20,20 @@ interface ModelCanvasMeshProps {
   specs: ProjectorSpec[];
   wallHeightFt: number;
   centerY: number;
-  tiltDeg: number;
 }
 
-function ModelInner({
-  modelUrl,
+interface ModelRendererProps extends ModelCanvasMeshProps {
+  scene: THREE.Object3D;
+}
+
+function ModelRenderer({
+  scene,
   mat,
   shadowPass,
   specs,
   wallHeightFt,
   centerY,
-  tiltDeg,
-}: ModelCanvasMeshProps) {
-  const { scene } = useGLTF(modelUrl);
+}: ModelRendererProps) {
   const modelScale = useConfigStore((s) => s.projModelScale);
   const modelOffset = useConfigStore((s) => s.projModelOffset);
   const modelRotY = useConfigStore((s) => s.projModelRotY);
@@ -66,7 +67,7 @@ function ModelInner({
 
   useFrame(({ gl }) => {
     if (!groupRef.current) return;
-    shadowPass.render(gl, groupRef.current, specs, tiltDeg);
+    shadowPass.render(gl, groupRef.current, specs);
   });
 
   return (
@@ -80,6 +81,21 @@ function ModelInner({
       </group>
     </group>
   );
+}
+
+function GltfInner(props: ModelCanvasMeshProps) {
+  const { scene } = useGLTF(props.modelUrl);
+  return <ModelRenderer {...props} scene={scene} />;
+}
+
+function FbxInner(props: ModelCanvasMeshProps) {
+  const fbx = useFBX(props.modelUrl);
+  return <ModelRenderer {...props} scene={fbx} />;
+}
+
+function ModelInner(props: ModelCanvasMeshProps) {
+  const isFbx = props.modelUrl.toLowerCase().includes('.fbx');
+  return isFbx ? <FbxInner {...props} /> : <GltfInner {...props} />;
 }
 
 class ModelBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {

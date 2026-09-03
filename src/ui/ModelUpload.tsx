@@ -81,13 +81,13 @@ export function ModelUpload() {
       <input
         ref={inputRef}
         type="file"
-        accept=".glb,.gltf"
+        accept=".glb,.gltf,.fbx"
         onChange={handleFile}
         hidden
       />
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
         <button className="ghost" onClick={() => inputRef.current?.click()}>
-          {modelUrl ? 'Replace 3D Model' : 'Upload 3D Model (.glb, .gltf)'}
+          {modelUrl ? 'Replace 3D Model' : 'Upload 3D Model (.glb, .gltf, .fbx)'}
         </button>
         {!modelUrl && (
           <button className="ghost" onClick={handleSampleModel}>

@@ -31,33 +31,83 @@ interface CanvasMeshProps {
 }
 
 function makeCurvedPlane(
-  width: number,
   height: number,
   centerY: number,
-  radius: number,
+  radiusFt: number,
+  arcDeg = 60,
 ): THREE.BufferGeometry {
-  const segX = 48;
-  const segY = 8;
-  const geo = new THREE.PlaneGeometry(width, height, segX, segY);
-  const pos = geo.attributes.position;
-  const norm = geo.attributes.normal;
-  const R = Math.max(radius, width / 2.5);
+  const isConvex = radiusFt < 0;
+  const R = Math.max(1, Math.abs(radiusFt));
+  const arcRad = (Math.max(10, Math.min(180, arcDeg)) * Math.PI) / 180;
+  const segX = 64;
+  const segY = 16;
 
-  for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i);
-    const y = pos.getY(i);
-    const theta = x / R;
-    const newX = R * Math.sin(theta);
-    const newZ = R * (Math.cos(theta) - 1);
-    pos.setXYZ(i, newX, y + centerY, newZ);
+  const geo = new THREE.BufferGeometry();
+  const vertexCount = (segX + 1) * (segY + 1);
+  const positions = new Float32Array(vertexCount * 3);
+  const normals = new Float32Array(vertexCount * 3);
+  const uvs = new Float32Array(vertexCount * 2);
+  const indices: number[] = [];
 
-    const nx = -Math.sin(theta);
-    const nz = Math.cos(theta);
-    norm.setXYZ(i, nx, 0, nz);
+  let vertIdx = 0;
+  let uvIdx = 0;
+
+  for (let j = 0; j <= segY; j++) {
+    const v = j / segY;
+    const y = (v - 0.5) * height + centerY;
+
+    for (let i = 0; i <= segX; i++) {
+      const u = i / segX;
+      const theta = (u - 0.5) * arcRad;
+
+      const sinT = Math.sin(theta);
+      const cosT = Math.cos(theta);
+
+      const x = R * sinT;
+      const z = isConvex ? -R * (1 - cosT) : R * (1 - cosT);
+
+      positions[vertIdx * 3] = x;
+      positions[vertIdx * 3 + 1] = y;
+      positions[vertIdx * 3 + 2] = z;
+
+      const nx = isConvex ? sinT : -sinT;
+      const nz = cosT;
+      const len = Math.hypot(nx, nz) || 1;
+
+      normals[vertIdx * 3] = nx / len;
+      normals[vertIdx * 3 + 1] = 0;
+      normals[vertIdx * 3 + 2] = nz / len;
+
+      uvs[uvIdx * 2] = u;
+      uvs[uvIdx * 2 + 1] = v;
+
+      vertIdx++;
+      uvIdx++;
+    }
   }
-  pos.needsUpdate = true;
-  norm.needsUpdate = true;
-  geo.computeVertexNormals();
+
+  for (let j = 0; j < segY; j++) {
+    for (let i = 0; i < segX; i++) {
+      const a = j * (segX + 1) + i;
+      const b = (j + 1) * (segX + 1) + i;
+      const c = (j + 1) * (segX + 1) + (i + 1);
+      const d = j * (segX + 1) + (i + 1);
+
+      indices.push(a, b, d);
+      indices.push(b, c, d);
+    }
+  }
+
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
+  geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+  geo.setIndex(indices);
+  return geo;
+}
+
+function makeColumn(radius: number, height: number, centerY: number): THREE.BufferGeometry {
+  const geo = new THREE.CylinderGeometry(radius, radius, height, 64, 1, false);
+  geo.translate(0, centerY, 0);
   return geo;
 }
 
@@ -71,6 +121,7 @@ export function ProjectionCanvasMesh({
   wallHeightFt,
   centerY,
   curvedRadiusFt = 14,
+  curvedArcDeg = 60,
 }: CanvasMeshProps) {
   const view = useConfigStore((s) => s.projSurfaceView);
   const contentUrl = useConfigStore((s) => s.contentUrl);
@@ -95,11 +146,9 @@ export function ProjectionCanvasMesh({
     shadowPass.dispose();
   }, [mat, heatRampTex, shadowPass]);
 
-  const tiltDeg = useConfigStore((s) => s.projTiltDeg);
-
   useFrame(({ gl }) => {
     if (!meshRef.current) return;
-    shadowPass.render(gl, meshRef.current, specs, tiltDeg);
+    shadowPass.render(gl, meshRef.current, specs);
   });
 
   const contentTex = useMemo(() => {
@@ -128,17 +177,15 @@ export function ProjectionCanvasMesh({
 
   const geo = useMemo(() => {
     if (canvasType === 'curved') {
-      return makeCurvedPlane(wallWidthFt, wallHeightFt, centerY, curvedRadiusFt);
+      return makeCurvedPlane(wallHeightFt, centerY, curvedRadiusFt, curvedArcDeg);
     }
     if (canvasType === 'cylinder') {
-      const g = new THREE.CylinderGeometry(curvedRadiusFt / 3, curvedRadiusFt / 3, wallHeightFt, 48, 1, true);
-      g.translate(0, centerY, 0);
-      return g;
+      return makeColumn(Math.abs(curvedRadiusFt) / 3, wallHeightFt, centerY);
     }
     const g = new THREE.PlaneGeometry(wallWidthFt, wallHeightFt);
     g.translate(0, centerY, 0);
     return g;
-  }, [canvasType, curvedRadiusFt, wallHeightFt, wallWidthFt, centerY]);
+  }, [canvasType, curvedRadiusFt, curvedArcDeg, wallHeightFt, wallWidthFt, centerY]);
 
   useEffect(() => () => geo.dispose(), [geo]);
 
@@ -177,7 +224,6 @@ export function ProjectionCanvasMesh({
         specs={specs}
         wallHeightFt={wallHeightFt}
         centerY={centerY}
-        tiltDeg={tiltDeg}
       />
     );
   }
