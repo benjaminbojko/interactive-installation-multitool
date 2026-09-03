@@ -110,8 +110,9 @@ export function ProjectionControls() {
   const pinDistance = s.projPin === 'distance';
 
   return (
-    <div className="panel">
-      <h2>Projector</h2>
+    <>
+      <div className="panel">
+        <h2>Projector</h2>
 
       <Row label="Preset">
         <select
@@ -277,7 +278,9 @@ export function ProjectionControls() {
           </button>
         </span>
       </Row>
+    </div>
 
+    <div className="panel">
       <h2>Geometry</h2>
 
       <Row
@@ -432,7 +435,9 @@ export function ProjectionControls() {
           onChange={(e) => s.set('projTiltDeg', Number(e.target.value))}
         />
       </div>
+    </div>
 
+    <div className="panel">
       <h2>Environment</h2>
 
       <div
@@ -453,7 +458,9 @@ export function ProjectionControls() {
           onChange={(e) => s.set('projAmbientFc', Number(e.target.value))}
         />
       </div>
+    </div>
 
+    <div className="panel">
       <h2>Surface</h2>
 
       <Row label="Canvas">
@@ -606,5 +613,6 @@ export function ProjectionControls() {
         Show person for scale
       </label>
     </div>
-  );
+  </>
+);
 }
