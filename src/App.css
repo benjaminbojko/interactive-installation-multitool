@@ -87,6 +87,27 @@ input[type=number], select {
 .aspect { display: inline-flex; align-items: center; gap: 6px; }
 .aspect input { width: 48px; }
 
+.coord-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+}
+.coord-grid label {
+  display: flex;
+  flex-direction: column;
+  font-size: 11px;
+  color: var(--muted);
+  min-width: 0;
+}
+.coord-grid input[type=number] {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 5px 6px;
+  text-align: center;
+}
+
 .hint { color: var(--muted); font-size: 12px; margin: 6px 0 0; }
 .hint.warn {
   color: var(--caution); background: rgba(241, 196, 15, .08);

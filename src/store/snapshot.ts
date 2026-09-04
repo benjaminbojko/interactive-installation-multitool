@@ -67,6 +67,21 @@ function isSpeakerUnit(u: unknown): boolean {
   );
 }
 
+function isProjectorInstance(u: unknown): boolean {
+  if (!u || typeof u !== 'object') return false;
+  const p = u as Record<string, unknown>;
+  return (
+    typeof p.id === 'string' &&
+    typeof p.name === 'string' &&
+    Array.isArray(p.posIn) &&
+    p.posIn.length === 3 &&
+    Array.isArray(p.rotDeg) &&
+    p.rotDeg.length === 3 &&
+    typeof p.throwRatio === 'number' &&
+    typeof p.lumens === 'number'
+  );
+}
+
 /** Sanitize an arbitrary blob into a patch safe to push into the store. Only keys
  *  present in INITIAL survive, and only when the value's type matches the default
  *  (with `contentUrl` and `speakers` handled specially). Accepts either a raw
@@ -101,6 +116,10 @@ export function validateAndApply(raw: unknown): Partial<ConfigData> {
     }
     if (key === 'speakers') {
       if (Array.isArray(val) && val.length > 0 && val.every(isSpeakerUnit)) out[key] = val;
+      continue;
+    }
+    if (key === 'projectors') {
+      if (Array.isArray(val) && val.length > 0 && val.every(isProjectorInstance)) out[key] = val;
       continue;
     }
     if (key === 'typeSamples') {

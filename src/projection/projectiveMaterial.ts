@@ -38,18 +38,20 @@ uniform float uScreenGain;
 varying vec3 vWorldPosition;
 varying vec3 vWorldNormal;
 
-float computeBlend(float u, vec2 slice, float overlap) {
-  if (u < 0.0 || u > 1.0) return 0.0;
+float computeBlend(vec2 uv, vec2 slice, float overlap) {
+  if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) return 0.0;
   float w = 1.0;
   if (slice.x > 0.001 && overlap > 0.0) {
-    float t = clamp(u / overlap, 0.0, 1.0);
+    float t = clamp(uv.x / overlap, 0.0, 1.0);
     w *= t * t * (3.0 - 2.0 * t);
   }
   if (slice.y < 0.999 && overlap > 0.0) {
-    float t = clamp((1.0 - u) / overlap, 0.0, 1.0);
+    float t = clamp((1.0 - uv.x) / overlap, 0.0, 1.0);
     w *= t * t * (3.0 - 2.0 * t);
   }
-  return w;
+  float edge = smoothstep(0.0, 0.015, uv.x) * smoothstep(1.0, 0.985, uv.x)
+             * smoothstep(0.0, 0.015, uv.y) * smoothstep(1.0, 0.985, uv.y);
+  return w * edge;
 }
 
 float sampleShadow(int idx, vec2 uv) {
@@ -91,7 +93,7 @@ void main() {
       }
     }
 
-    float blend = computeBlend(uv.x, uContentSlice[i], uOverlapFrac);
+    float blend = computeBlend(uv, uContentSlice[i], uOverlapFrac);
     float fc = uNominalFc[i] * ((uNominalDist * uNominalDist) / (dist * dist)) * cosIncidence;
     totalFc += fc * blend;
 
@@ -197,7 +199,7 @@ export function updateProjectiveMaterialUniforms(
     const s = specs[i];
     (u.uProjMatrix.value[i] as THREE.Matrix4).fromArray(s.textureMatrix);
     (u.uLensPos.value[i] as THREE.Vector3).set(s.lens[0], s.lens[1], s.lens[2]);
-    u.uNominalFc.value[i] = nominalFc;
+    u.uNominalFc.value[i] = s.lumens && s.lumens > 0 ? (nominalFc * (s.lumens / 4000)) : nominalFc;
     (u.uContentSlice.value[i] as THREE.Vector2).set(s.contentSlice[0], s.contentSlice[1]);
     const shadowTex = shadowTextures[i];
     if (shadowTex) {

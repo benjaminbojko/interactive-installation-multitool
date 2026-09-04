@@ -45,19 +45,44 @@ export function biasMatrix(): Mat4 {
 
 export interface ProjectorPose {
   lens: Vec3;
-  tiltDeg: number;
+  tiltDeg?: number;
+  rotDeg?: Vec3; // [pitchDeg, yawDeg, rollDeg]
+}
+
+export function eulerToRotationMat3(rotDeg: Vec3): number[] {
+  const toRad = Math.PI / 180;
+  const pitch = (rotDeg[0] ?? 0) * toRad;
+  const yaw = (rotDeg[1] ?? 0) * toRad;
+  const roll = (rotDeg[2] ?? 0) * toRad;
+
+  const cx = Math.cos(pitch);
+  const sx = Math.sin(pitch);
+  const cy = Math.cos(yaw);
+  const sy = Math.sin(yaw);
+  const cz = Math.cos(roll);
+  const sz = Math.sin(roll);
+
+  return [
+    cy * cz + sy * sx * sz, -cy * sz + sy * sx * cz, sy * cx,
+    cx * sz,                cx * cz,                -sx,
+    -sy * cz + cy * sx * sz, sy * sz + cy * sx * cz, cy * cx,
+  ];
 }
 
 export function projectorViewMatrix(pose: ProjectorPose): Mat4 {
-  const tilt = (pose.tiltDeg * Math.PI) / 180;
-  const cosT = Math.cos(tilt);
-  const sinT = Math.sin(tilt);
+  const rot = pose.rotDeg ?? [pose.tiltDeg ?? 0, 0, 0];
+  const r = eulerToRotationMat3(rot);
   const [lx, ly, lz] = pose.lens;
+
+  const tx = -(r[0] * lx + r[3] * ly + r[6] * lz);
+  const ty = -(r[1] * lx + r[4] * ly + r[7] * lz);
+  const tz = -(r[2] * lx + r[5] * ly + r[8] * lz);
+
   return [
-    1, 0, 0, 0,
-    0, cosT, -sinT, 0,
-    0, sinT, cosT, 0,
-    -lx, -(ly * cosT + lz * sinT), -(-ly * sinT + lz * cosT), 1,
+    r[0], r[1], r[2], 0,
+    r[3], r[4], r[5], 0,
+    r[6], r[7], r[8], 0,
+    tx,   ty,   tz,   1,
   ];
 }
 
@@ -100,6 +125,7 @@ export interface ProjectorSpec {
   projMatrix: Mat4;
   textureMatrix: Mat4;
   contentSlice: [number, number];
+  lumens?: number;
 }
 
 export function buildProjectorSpecs(
@@ -123,6 +149,46 @@ export function buildProjectorSpecs(
       contentSlice: uRanges[idx] ?? [0, 1],
     };
   });
+}
+
+export interface ProjectorOpticsInstance {
+  posIn: [number, number, number];
+  rotDeg: [number, number, number];
+  throwRatio: number;
+  aspectW: number;
+  aspectH: number;
+  lensShiftPct: number;
+  lensOrigin: LensOrigin;
+  lumens: number;
+  enabled: boolean;
+}
+
+export function buildProjectorSpecsFromInstances(
+  projectors: ProjectorOpticsInstance[],
+  uRanges?: [number, number][],
+): ProjectorSpec[] {
+  return projectors
+    .filter((p) => p.enabled)
+    .map((p, idx) => {
+      const lens: Vec3 = [p.posIn[0] / 12, p.posIn[1] / 12, p.posIn[2] / 12];
+      const view = projectorViewMatrix({ lens, rotDeg: p.rotDeg });
+      const proj = projectorProjectionMatrix({
+        throwRatio: p.throwRatio,
+        aspectW: p.aspectW,
+        aspectH: p.aspectH,
+        lensShiftPct: p.lensShiftPct,
+        lensOrigin: p.lensOrigin,
+      });
+      const texture = multiplyMat4(biasMatrix(), multiplyMat4(proj, view));
+      return {
+        lens,
+        viewMatrix: view,
+        projMatrix: proj,
+        textureMatrix: texture,
+        contentSlice: uRanges?.[idx] ?? [0, 1],
+        lumens: p.lumens,
+      };
+    });
 }
 
 export function pointIlluminance(

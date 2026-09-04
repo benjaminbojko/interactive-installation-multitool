@@ -222,4 +222,18 @@ describe('pointIlluminance 3D falloff', () => {
     );
     expect(fc).toBeCloseTo(nominalFc * 0.25, 4);
   });
+
+  it('supports 6-DOF view matrices with arbitrary pitch, yaw, and roll', () => {
+    // Projector placed at [10, 8, 20] rotated with 15 deg pitch and -30 deg yaw
+    const v = projectorViewMatrix({
+      lens: [10, 8, 20],
+      rotDeg: [15, -30, 0],
+    });
+    expect(v).toHaveLength(16);
+    // Camera looking along its local -Z axis should map the lens position to [0, 0, 0] in view space
+    const lensInView = transformPointMat4(v, [10, 8, 20]);
+    expect(lensInView[0]).toBeCloseTo(0, 4);
+    expect(lensInView[1]).toBeCloseTo(0, 4);
+    expect(lensInView[2]).toBeCloseTo(0, 4);
+  });
 });

@@ -1,15 +1,15 @@
 import { Canvas } from '@react-three/fiber';
 import { Grid, Line, OrbitControls, PerspectiveCamera, Text } from '@react-three/drei';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useConfigStore } from '../store/useConfigStore';
 import { fmtDist } from '../ui/units';
 import { f } from '../scene/scale';
 import { makeWallGrid } from '../scene/wallGrid';
 import { ProjectionFigure } from './ProjectionFigure';
-import { ProjectionFrustum } from './ProjectionFrustum';
+import { ProjectorNode } from './ProjectorNode';
 import { ProjectionCanvasMesh } from './ProjectionCanvasMesh';
-import { buildProjectorSpecs } from './projectiveOptics';
+import { buildProjectorSpecsFromInstances } from './projectiveOptics';
 import {
   arrayLayout,
   BAND_LABEL,
@@ -20,7 +20,6 @@ import {
   projectionArrayMetrics,
   projectionMetrics,
   rampGradientCss,
-  translateGeometryX,
   inFromFt,
   FC_MIN_ACCEPTABLE,
   FC_DESIRABLE,
@@ -85,6 +84,7 @@ const LINE = '#10202e';
 export function ProjectionScene() {
   const s = useConfigStore();
   const units = s.units;
+  const orbitRef = useRef<any>(null);
 
   const metrics = useMemo(
     () =>
@@ -150,52 +150,27 @@ export function ProjectionScene() {
     () => projectionArrayMetrics(metrics, layout, s.projResW),
     [metrics, layout, s.projResW],
   );
-  const geoms = useMemo(
-    () => layout.centersX.map((dx) => translateGeometryX(geom, dx)),
-    [geom, layout],
-  );
   // Content slice each projector covers, as a fraction of the spanning image.
-  const uRanges = useMemo(
-    () =>
-      layout.centersX.map((cx): [number, number] => {
-        const tw = layout.totalWidthFt;
-        const left = (cx - metrics.widthFt / 2 + tw / 2) / tw;
-        const right = (cx + metrics.widthFt / 2 + tw / 2) / tw;
-        return [left, right];
-      }),
-    [layout, metrics.widthFt],
-  );
-  const isArray = layout.count > 1;
+  const uRanges = useMemo(() => {
+    const active = s.projectors.filter((p) => p.enabled);
+    if (active.length <= 1) return [[0, 1] as [number, number]];
+    const xs = active.map((p) => p.posIn[0] / 12);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const span = Math.max(0.1, maxX - minX + metrics.widthFt);
+    return active.map((p): [number, number] => {
+      const cx = p.posIn[0] / 12;
+      const left = Math.max(0, (cx - metrics.widthFt / 2 - minX) / span);
+      const right = Math.min(1, (cx + metrics.widthFt / 2 - minX) / span);
+      return [left, right];
+    });
+  }, [s.projectors, metrics.widthFt]);
+  const isArray = s.projectors.filter((p) => p.enabled).length > 1;
 
   const distFt = ftFromIn(s.projDistance);
   const specs = useMemo(
-    () =>
-      buildProjectorSpecs(
-        layout.centersX,
-        distFt,
-        ftFromIn(s.projLensAff),
-        s.projTiltDeg,
-        {
-          throwRatio: s.projThrowRatio,
-          aspectW: s.projAspectW,
-          aspectH: s.projAspectH,
-          lensShiftPct: s.projLensShiftPct,
-          lensOrigin: s.projLensOrigin,
-        },
-        uRanges,
-      ),
-    [
-      layout.centersX,
-      distFt,
-      s.projLensAff,
-      s.projTiltDeg,
-      s.projThrowRatio,
-      s.projAspectW,
-      s.projAspectH,
-      s.projLensShiftPct,
-      s.projLensOrigin,
-      uRanges,
-    ],
+    () => buildProjectorSpecsFromInstances(s.projectors, uRanges),
+    [s.projectors, uRanges],
   );
 
   const tone = BAND_TONE[metrics.band];
@@ -216,12 +191,14 @@ export function ProjectionScene() {
       <div className="proj-frame">
         <Canvas
           dpr={[1, 2]}
+          onPointerMissed={() => s.selectProjector(null)}
           style={{
             background: 'linear-gradient(180deg,#dfe4ea 0%,#bcc4ce 55%,#9ca5b0 100%)',
           }}
         >
           <PerspectiveCamera makeDefault fov={45} position={[camX, camY, camZ]} />
           <OrbitControls
+            ref={orbitRef}
             target={[0, Math.max(3, imgCenterY), distFt * 0.4]}
             maxPolarAngle={Math.PI / 2}
           />
@@ -240,9 +217,22 @@ export function ProjectionScene() {
             curvedRadiusFt={ftFromIn(s.projCurvedRadius)}
             curvedArcDeg={s.projCurvedArcDeg}
           />
-          {geoms.map((g, i) => (
-            <ProjectionFrustum key={i} geom={g} color={bandColor} />
-          ))}
+          {s.projectors
+            .filter((p) => p.enabled)
+            .map((p) => (
+              <ProjectorNode
+                key={p.id}
+                projector={p}
+                isSelected={p.id === s.selectedProjectorId}
+                bandColor={bandColor}
+                gizmoMode={s.transformGizmoMode}
+                gizmoSpace={s.transformGizmoSpace}
+                isMetric={units === 'metric'}
+                onSelect={() => s.selectProjector(p.id)}
+                onTransformEnd={(posIn, rotDeg) => s.updateProjector(p.id, { posIn, rotDeg })}
+                orbitRef={orbitRef}
+              />
+            ))}
           {/* Blend seams: the overlap of two projectors runs ~2× bright before
               the blend curve tapers it — flag each seam as a hot strip. */}
           {isArray &&

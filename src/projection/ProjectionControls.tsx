@@ -1,6 +1,7 @@
 import { useConfigStore } from '../store/useConfigStore';
 import { ContentUpload } from '../ui/ContentUpload';
 import { ModelUpload } from '../ui/ModelUpload';
+import { ProjectorListCard } from './ProjectorListCard';
 import { fmtDist, fmtLen, fromInches, toInches } from '../ui/units';
 import { distanceFromWidth, widthFromDistance } from './projectionMath';
 
@@ -53,6 +54,10 @@ export function ProjectionControls() {
   function setDistance(distIn: number) {
     s.set('projDistance', distIn);
     s.set('projWidth', widthFromDistance(distIn, s.projThrowRatio));
+    if (s.selectedProjectorId) {
+      const p = s.projectors.find((x) => x.id === s.selectedProjectorId);
+      if (p) s.updateProjector(p.id, { posIn: [p.posIn[0], p.posIn[1], distIn] });
+    }
   }
   function setWidth(widthIn: number) {
     s.set('projWidth', widthIn);
@@ -64,6 +69,9 @@ export function ProjectionControls() {
       s.set('projDistance', distanceFromWidth(s.projWidth, tr));
     } else {
       s.set('projWidth', widthFromDistance(s.projDistance, tr));
+    }
+    if (s.selectedProjectorId) {
+      s.updateProjector(s.selectedProjectorId, { throwRatio: tr });
     }
   }
 
@@ -152,7 +160,13 @@ export function ProjectionControls() {
           step={250}
           min={100}
           value={s.projLumens}
-          onChange={(e) => s.set('projLumens', Number(e.target.value))}
+          onChange={(e) => {
+            const lm = Number(e.target.value);
+            s.set('projLumens', lm);
+            if (s.selectedProjectorId) {
+              s.updateProjector(s.selectedProjectorId, { lumens: lm });
+            }
+          }}
         />
       </Row>
 
@@ -280,6 +294,8 @@ export function ProjectionControls() {
       </Row>
     </div>
 
+    <ProjectorListCard />
+
     <div className="panel">
       <h2>Geometry</h2>
 
@@ -377,7 +393,14 @@ export function ProjectionControls() {
           max={metric ? 420 : 168}
           step={metric ? 2 : 1}
           value={round(fromInches(s.projLensAff, units))}
-          onChange={(e) => s.set('projLensAff', toInches(Number(e.target.value), units))}
+          onChange={(e) => {
+            const aff = toInches(Number(e.target.value), units);
+            s.set('projLensAff', aff);
+            if (s.selectedProjectorId) {
+              const p = s.projectors.find((x) => x.id === s.selectedProjectorId);
+              if (p) s.updateProjector(p.id, { posIn: [p.posIn[0], aff, p.posIn[2]] });
+            }
+          }}
         />
       </div>
 
@@ -385,13 +408,19 @@ export function ProjectionControls() {
         <span className="seg sm">
           <button
             className={s.projLensOrigin === 'center' ? 'on' : ''}
-            onClick={() => s.set('projLensOrigin', 'center')}
+            onClick={() => {
+              s.set('projLensOrigin', 'center');
+              if (s.selectedProjectorId) s.updateProjector(s.selectedProjectorId, { lensOrigin: 'center' });
+            }}
           >
             Centre
           </button>
           <button
             className={s.projLensOrigin === 'top' ? 'on' : ''}
-            onClick={() => s.set('projLensOrigin', 'top')}
+            onClick={() => {
+              s.set('projLensOrigin', 'top');
+              if (s.selectedProjectorId) s.updateProjector(s.selectedProjectorId, { lensOrigin: 'top' });
+            }}
           >
             Top
           </button>
@@ -413,7 +442,11 @@ export function ProjectionControls() {
           max={130}
           step={5}
           value={s.projLensShiftPct}
-          onChange={(e) => s.set('projLensShiftPct', Number(e.target.value))}
+          onChange={(e) => {
+            const val = Number(e.target.value);
+            s.set('projLensShiftPct', val);
+            if (s.selectedProjectorId) s.updateProjector(s.selectedProjectorId, { lensShiftPct: val });
+          }}
         />
       </div>
 
@@ -432,7 +465,14 @@ export function ProjectionControls() {
           max={30}
           step={1}
           value={s.projTiltDeg}
-          onChange={(e) => s.set('projTiltDeg', Number(e.target.value))}
+          onChange={(e) => {
+            const val = Number(e.target.value);
+            s.set('projTiltDeg', val);
+            if (s.selectedProjectorId) {
+              const p = s.projectors.find((x) => x.id === s.selectedProjectorId);
+              if (p) s.updateProjector(p.id, { rotDeg: [val, p.rotDeg[1], p.rotDeg[2]] });
+            }
+          }}
         />
       </div>
     </div>

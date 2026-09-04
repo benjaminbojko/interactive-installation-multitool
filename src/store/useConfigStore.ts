@@ -5,6 +5,14 @@ import { sizeFromDiagonal, verdict, type Verdict } from '../ergonomics/engine';
 import { legibilityReport, type LegibilityReport, type TypeSample } from '../typography/legibility';
 import { mToIn, type SensingMode, type SensorMount, type SensorTarget } from '../sensor/sensorMath';
 import { MOUNT_DEFAULTS as SPK_MOUNT_DEFAULTS, type SpeakerUnit, type UseCase } from '../speaker/speakerMath';
+import {
+  type ProjectorInstance,
+  type TransformGizmoMode,
+  type TransformGizmoSpace,
+  INITIAL_PROJECTORS,
+  createDefaultProjector,
+  arrangeInArray,
+} from '../projection/projectorConfig';
 import { dataFields, validateAndApply, withoutContent } from './snapshot';
 
 /** Bumped only when a field's meaning changes incompatibly. Stamped into every
@@ -129,6 +137,10 @@ export interface ConfigState {
   projModelScale: number; // scale multiplier for 3D model
   projModelOffset: [number, number, number]; // [x, y, z] in inches
   projModelRotY: number; // deg, yaw rotation for 3D model
+  projectors: ProjectorInstance[];
+  selectedProjectorId: string | null;
+  transformGizmoMode: TransformGizmoMode;
+  transformGizmoSpace: TransformGizmoSpace;
 
   // --- sensor coverage (camera / depth sensor) ---
   sensorMount: SensorMount; // ceiling / wall / floor
@@ -171,13 +183,27 @@ export interface ConfigState {
   applyRecommendedMount: () => void;
   getVerdict: () => Verdict;
   getLegibility: () => LegibilityReport;
+  addProjector: (preset?: Partial<ProjectorInstance>) => string;
+  removeProjector: (id: string) => void;
+  updateProjector: (id: string, partial: Partial<ProjectorInstance>) => void;
+  selectProjector: (id: string | null) => void;
+  arrangeProjectorsInArray: (count: number, overlapPct: number) => void;
 }
 
 /** The serializable fields only — the store minus its action functions. This is
  *  what gets saved/restored across localStorage, JSON files, and share links. */
 export type ConfigData = Omit<
   ConfigState,
-  'set' | 'setContent' | 'applyRecommendedMount' | 'getVerdict' | 'getLegibility'
+  | 'set'
+  | 'setContent'
+  | 'applyRecommendedMount'
+  | 'getVerdict'
+  | 'getLegibility'
+  | 'addProjector'
+  | 'removeProjector'
+  | 'updateProjector'
+  | 'selectProjector'
+  | 'arrangeProjectorsInArray'
 >;
 
 export const INITIAL: ConfigData = {
@@ -275,6 +301,10 @@ export const INITIAL: ConfigData = {
   projModelScale: 1.0,
   projModelOffset: [0, 0, 0],
   projModelRotY: 0,
+  projectors: INITIAL_PROJECTORS,
+  selectedProjectorId: 'proj-1',
+  transformGizmoMode: 'translate',
+  transformGizmoSpace: 'world',
 
   // Azure Kinect (NFOV) on a 9 ft ceiling aimed straight down, skeletal tracking.
   sensorMount: 'ceiling',
@@ -325,6 +355,62 @@ export const useConfigStore = create<ConfigState>()(
 
       set: (key, value) => set({ [key]: value } as Partial<ConfigState>),
       setContent: (url) => set({ contentUrl: url }),
+
+      addProjector: (preset) => {
+        const s = get();
+        if (s.projectors.length >= 4) return s.projectors[s.projectors.length - 1].id;
+        const id = `proj-${Date.now()}`;
+        const count = s.projectors.length + 1;
+        const prev = s.projectors[s.projectors.length - 1];
+        const newProj: ProjectorInstance = {
+          ...(prev ?? createDefaultProjector(id, `Projector ${count}`)),
+          ...preset,
+          id,
+          name: preset?.name ?? `Projector ${count}`,
+          posIn: preset?.posIn ?? [
+            prev ? prev.posIn[0] + 48 : 0,
+            prev ? prev.posIn[1] : 90,
+            prev ? prev.posIn[2] : 180,
+          ],
+        };
+        set({
+          projectors: [...s.projectors, newProj],
+          selectedProjectorId: id,
+        });
+        return id;
+      },
+
+      removeProjector: (id) => {
+        const s = get();
+        if (s.projectors.length <= 1) return;
+        const next = s.projectors.filter((p) => p.id !== id);
+        set({
+          projectors: next,
+          selectedProjectorId: s.selectedProjectorId === id ? next[0].id : s.selectedProjectorId,
+        });
+      },
+
+      updateProjector: (id, partial) => {
+        const s = get();
+        set({
+          projectors: s.projectors.map((p) => (p.id === id ? { ...p, ...partial } : p)),
+        });
+      },
+
+      selectProjector: (id) => set({ selectedProjectorId: id }),
+
+      arrangeProjectorsInArray: (count, overlapPct) => {
+        const s = get();
+        const next = arrangeInArray(
+          s.projectors,
+          count,
+          overlapPct,
+          s.projWidth,
+          s.projDistance,
+          s.projLensAff,
+        );
+        set({ projectors: next, selectedProjectorId: next[0]?.id ?? null });
+      },
 
       applyRecommendedMount: () => {
         const v = get().getVerdict();
