@@ -16,6 +16,7 @@ import {
 import { dataFields, validateAndApply, withoutContent } from './snapshot';
 import { deleteModelBlob } from './modelBlobStore';
 import { restoreModel } from './modelPersistence';
+import { createRafBatchedSetter } from './rafBatchedSet';
 
 /** Bumped only when a field's meaning changes incompatibly. Stamped into every
  *  saved snapshot (localStorage, JSON file, share link). Restore is best-effort
@@ -367,139 +368,145 @@ export const INITIAL: ConfigData = {
 
 export const useConfigStore = create<ConfigState>()(
   persist(
-    (set, get) => ({
-      ...INITIAL,
+    (rawSet, get) => {
+      // Every action below writes through this batched `set`, so a slider drag —
+      // whatever action it calls — commits to the store (and localStorage) at
+      // most once per animation frame instead of once per input tick.
+      const set = createRafBatchedSetter(rawSet);
+      return {
+        ...INITIAL,
 
-      set: (key, value) => set({ [key]: value } as Partial<ConfigState>),
-      setContent: (url) => set({ contentUrl: url }),
-      resetToDefaults: () => {
-        const s = get();
-        if (s.projModelUrl?.startsWith('blob:')) URL.revokeObjectURL(s.projModelUrl);
-        if (s.projModelSource === 'upload' && s.projModelId) {
-          void deleteModelBlob(s.projModelId).catch(() => {});
-        }
-        try {
-          if (typeof localStorage !== 'undefined') {
-            localStorage.removeItem('iimt-config');
+        set: (key, value) => set({ [key]: value } as Partial<ConfigState>),
+        setContent: (url) => set({ contentUrl: url }),
+        resetToDefaults: () => {
+          const s = get();
+          if (s.projModelUrl?.startsWith('blob:')) URL.revokeObjectURL(s.projModelUrl);
+          if (s.projModelSource === 'upload' && s.projModelId) {
+            void deleteModelBlob(s.projModelId).catch(() => {});
           }
-        } catch {
-          // ignore
-        }
-        if (typeof window !== 'undefined' && window.location.hash) {
-          window.history.replaceState(null, '', window.location.pathname + window.location.search);
-        }
-        set({
-          ...INITIAL,
-          projModelOffset: [0, 0, 0],
-          projModelRot: [0, 0, 0],
-          typeSamples: INITIAL.typeSamples.map((s) => ({ ...s })),
-          speakers: INITIAL.speakers.map((s) => ({ ...s })),
-          projectors: INITIAL_PROJECTORS.map((p) => ({
-            ...p,
-            posIn: [...p.posIn],
-            rotDeg: [...p.rotDeg],
-          })),
-        });
-      },
+          try {
+            if (typeof localStorage !== 'undefined') {
+              localStorage.removeItem('iimt-config');
+            }
+          } catch {
+            // ignore
+          }
+          if (typeof window !== 'undefined' && window.location.hash) {
+            window.history.replaceState(null, '', window.location.pathname + window.location.search);
+          }
+          set({
+            ...INITIAL,
+            projModelOffset: [0, 0, 0],
+            projModelRot: [0, 0, 0],
+            typeSamples: INITIAL.typeSamples.map((s) => ({ ...s })),
+            speakers: INITIAL.speakers.map((s) => ({ ...s })),
+            projectors: INITIAL_PROJECTORS.map((p) => ({
+              ...p,
+              posIn: [...p.posIn],
+              rotDeg: [...p.rotDeg],
+            })),
+          });
+        },
 
-      addProjector: (preset) => {
-        const s = get();
-        if (s.projectors.length >= 4) return s.projectors[s.projectors.length - 1].id;
-        const id = `proj-${Date.now()}`;
-        const count = s.projectors.length + 1;
-        const prev = s.projectors[s.projectors.length - 1];
-        const newProj: ProjectorInstance = {
-          ...(prev ?? createDefaultProjector(id, `Projector ${count}`)),
-          ...preset,
-          id,
-          name: preset?.name ?? `Projector ${count}`,
-          posIn: preset?.posIn ?? [
-            prev ? prev.posIn[0] + 48 : 0,
-            prev ? prev.posIn[1] : 90,
-            prev ? prev.posIn[2] : 180,
-          ],
-        };
-        set({
-          projectors: [...s.projectors, newProj],
-          selectedProjectorId: id,
-        });
-        return id;
-      },
+        addProjector: (preset) => {
+          const s = get();
+          if (s.projectors.length >= 4) return s.projectors[s.projectors.length - 1].id;
+          const id = `proj-${Date.now()}`;
+          const count = s.projectors.length + 1;
+          const prev = s.projectors[s.projectors.length - 1];
+          const newProj: ProjectorInstance = {
+            ...(prev ?? createDefaultProjector(id, `Projector ${count}`)),
+            ...preset,
+            id,
+            name: preset?.name ?? `Projector ${count}`,
+            posIn: preset?.posIn ?? [
+              prev ? prev.posIn[0] + 48 : 0,
+              prev ? prev.posIn[1] : 90,
+              prev ? prev.posIn[2] : 180,
+            ],
+          };
+          set({
+            projectors: [...s.projectors, newProj],
+            selectedProjectorId: id,
+          });
+          return id;
+        },
 
-      removeProjector: (id) => {
-        const s = get();
-        if (s.projectors.length <= 1) return;
-        const next = s.projectors.filter((p) => p.id !== id);
-        set({
-          projectors: next,
-          selectedProjectorId: s.selectedProjectorId === id ? next[0].id : s.selectedProjectorId,
-        });
-      },
+        removeProjector: (id) => {
+          const s = get();
+          if (s.projectors.length <= 1) return;
+          const next = s.projectors.filter((p) => p.id !== id);
+          set({
+            projectors: next,
+            selectedProjectorId: s.selectedProjectorId === id ? next[0].id : s.selectedProjectorId,
+          });
+        },
 
-      updateProjector: (id, partial) => {
-        const s = get();
-        set({
-          projectors: s.projectors.map((p) => (p.id === id ? { ...p, ...partial } : p)),
-        });
-      },
+        updateProjector: (id, partial) => {
+          const s = get();
+          set({
+            projectors: s.projectors.map((p) => (p.id === id ? { ...p, ...partial } : p)),
+          });
+        },
 
-      selectProjector: (id) => set({ selectedProjectorId: id }),
+        selectProjector: (id) => set({ selectedProjectorId: id }),
 
-      arrangeProjectorsInArray: (count, overlapPct) => {
-        const s = get();
-        const next = arrangeInArray(
-          s.projectors,
-          count,
-          overlapPct,
-          s.projWidth,
-          s.projDistance,
-          s.projLensAff,
-        );
-        set({ projectors: next, selectedProjectorId: next[0]?.id ?? null });
-      },
+        arrangeProjectorsInArray: (count, overlapPct) => {
+          const s = get();
+          const next = arrangeInArray(
+            s.projectors,
+            count,
+            overlapPct,
+            s.projWidth,
+            s.projDistance,
+            s.projLensAff,
+          );
+          set({ projectors: next, selectedProjectorId: next[0]?.id ?? null });
+        },
 
-      applyRecommendedMount: () => {
-        const v = get().getVerdict();
-        set({ mountBottom: Math.round(v.recommendedMountBottom * 10) / 10 });
-      },
+        applyRecommendedMount: () => {
+          const v = get().getVerdict();
+          set({ mountBottom: Math.round(v.recommendedMountBottom * 10) / 10 });
+        },
 
-      getVerdict: () => {
-        const s = get();
-        return verdict({
-          size: sizeFromDiagonal(s.diagonal, s.aspectW, s.aspectH),
-          mountBottom: s.mountBottom,
-          tiltDeg: s.tiltDeg,
-          mode: s.mode,
-          viewingDistance: s.viewingDistance,
-          personaId: s.personaId,
-          horizontalPixels: s.resMode === 'pixels' ? s.horizontalPixels : undefined,
-          pitchMm: s.resMode === 'pitch' ? s.pitchMm : undefined,
-          strictness: s.strictness,
-        });
-      },
+        getVerdict: () => {
+          const s = get();
+          return verdict({
+            size: sizeFromDiagonal(s.diagonal, s.aspectW, s.aspectH),
+            mountBottom: s.mountBottom,
+            tiltDeg: s.tiltDeg,
+            mode: s.mode,
+            viewingDistance: s.viewingDistance,
+            personaId: s.personaId,
+            horizontalPixels: s.resMode === 'pixels' ? s.horizontalPixels : undefined,
+            pitchMm: s.resMode === 'pitch' ? s.pitchMm : undefined,
+            strictness: s.strictness,
+          });
+        },
 
-      getLegibility: () => {
-        const s = get();
-        const size = sizeFromDiagonal(s.diagonal, s.aspectW, s.aspectH);
-        // Perception is judged at the same effective distance the verdict uses:
-        // arm's length in touch mode, the configured standoff when viewing.
-        const distanceIn = s.getVerdict().effectiveDistance;
-        // Native horizontal pixels: given directly, or derived from LED pitch.
-        const screenPx =
-          s.resMode === 'pixels'
-            ? s.horizontalPixels
-            : s.pitchMm > 0
-              ? (size.width * 25.4) / s.pitchMm
-              : 0;
-        return legibilityReport({
-          samples: s.typeSamples,
-          artboardPx: s.typeArtboardPx,
-          screenWidthIn: size.width,
-          screenPx,
-          distanceIn,
-        });
-      },
-    }),
+        getLegibility: () => {
+          const s = get();
+          const size = sizeFromDiagonal(s.diagonal, s.aspectW, s.aspectH);
+          // Perception is judged at the same effective distance the verdict uses:
+          // arm's length in touch mode, the configured standoff when viewing.
+          const distanceIn = s.getVerdict().effectiveDistance;
+          // Native horizontal pixels: given directly, or derived from LED pitch.
+          const screenPx =
+            s.resMode === 'pixels'
+              ? s.horizontalPixels
+              : s.pitchMm > 0
+                ? (size.width * 25.4) / s.pitchMm
+                : 0;
+          return legibilityReport({
+            samples: s.typeSamples,
+            artboardPx: s.typeArtboardPx,
+            screenWidthIn: size.width,
+            screenPx,
+            distanceIn,
+          });
+        },
+      };
+    },
     {
       name: 'iimt-config',
       version: SCHEMA_VERSION,
