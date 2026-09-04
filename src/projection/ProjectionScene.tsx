@@ -170,21 +170,48 @@ export function ProjectionScene() {
   }, [s.projectors, metrics.widthFt]);
   const isArray = s.projectors.filter((p) => p.enabled).length > 1;
 
-  const distFt = ftFromIn(s.projDistance);
+  // Freeform mode places/aims each projector by hand — there's no single
+  // shared throw distance or canvas rectangle to measure a width/height
+  // from (and a naive bounding box blows up whenever a unit is aimed
+  // near-parallel to the wall). So width/height/brightness stay the
+  // parametric single-projector numbers, and the UI hides the readouts
+  // that would otherwise misrepresent a freeform setup as one flat image.
+  const freeform = s.projGeometryMode === 'freeform';
+
   const specs = useMemo(
     () => buildProjectorSpecsFromInstances(s.projectors, uRanges),
     [s.projectors, uRanges],
   );
 
+  const widthFt = isArray ? arrayM.totalWidthFt : metrics.widthFt;
+  const heightFt = metrics.heightFt;
+  const areaSqFt = isArray ? arrayM.totalAreaSqFt : metrics.areaSqFt;
+  const footCandles = metrics.footCandles;
+  const footLamberts = metrics.footLamberts;
+  const nits = metrics.nits;
+  const contrastRatio = metrics.contrastRatio;
+  const band = metrics.band;
+  const count = arrayM.count;
+  const hPpf = isArray ? arrayM.hPpf : metrics.hPpf;
+  const vPpf = metrics.vPpf;
+  const distFt = ftFromIn(s.projDistance);
+  // Total lumens on tap doesn't need a shared canvas — just sum whatever's
+  // enabled — so it stays meaningful (and freeform-aware) even when the
+  // rest of the readout is hidden.
+  const systemLumens = freeform
+    ? s.projectors.filter((p) => p.enabled).reduce((sum, p) => sum + p.lumens, 0)
+    : isArray
+      ? arrayM.systemLumens
+      : metrics.effectiveLumens;
 
-  const tone = BAND_TONE[metrics.band];
+  const tone = BAND_TONE[band];
   const imgCenterY = geom.imageCenterFt;
-  const halfW = arrayM.totalWidthFt / 2;
-  const imageHeightFt = metrics.heightFt;
-  const bandColor = fcToColor(metrics.footCandles);
+  const halfW = widthFt / 2;
+  const imageHeightFt = heightFt;
+  const bandColor = fcToColor(footCandles);
 
   // Camera framing scaled to the setup (full array width).
-  const camX = -(Math.max(8, arrayM.totalWidthFt) + 4);
+  const camX = -(Math.max(8, widthFt) + 4);
   const camY = Math.max(7, imgCenterY + 4);
   const camZ = distFt + 8;
 
@@ -209,15 +236,15 @@ export function ProjectionScene() {
           />
           <Lights />
           <Floor />
-          {s.projCanvasType === 'wall' && <Wall width={inFromFt(arrayM.totalWidthFt)} />}
+          {s.projCanvasType === 'wall' && <Wall width={inFromFt(widthFt)} />}
           <ProjectionCanvasMesh
             canvasType={s.projCanvasType}
             specs={specs}
-            nominalFc={metrics.footCandles}
+            nominalFc={footCandles}
             distFt={distFt}
             overlapFrac={layout.overlapFrac}
-            wallWidthFt={arrayM.totalWidthFt}
-            wallHeightFt={metrics.heightFt}
+            wallWidthFt={widthFt}
+            wallHeightFt={heightFt}
             centerY={imgCenterY}
             curvedRadiusFt={ftFromIn(s.projCurvedRadius)}
             curvedArcDeg={s.projCurvedArcDeg}
@@ -240,8 +267,10 @@ export function ProjectionScene() {
               />
             ))}
           {/* Blend seams: the overlap of two projectors runs ~2× bright before
-              the blend curve tapers it — flag each seam as a hot strip. */}
-          {isArray &&
+              the blend curve tapers it — flag each seam as a hot strip.
+              Parametric-only: freeform placement has no uniform-overlap seam. */}
+          {!freeform &&
+            isArray &&
             s.projSurfaceView === 'heatmap' &&
             layout.seamsX.map((sx, i) => (
               <mesh key={i} position={[sx, imgCenterY, 0.03]}>
@@ -258,63 +287,75 @@ export function ProjectionScene() {
             ))}
           {s.projShowFigure && <ProjectionFigure pos={[halfW + 1.5, 2]} />}
 
-          {/* image width dimension just under the bottom edge */}
-          <Line
-            points={[
-              [-halfW, bottomY - 0.5, 0.02],
-              [halfW, bottomY - 0.5, 0.02],
-            ]}
-            color={LINE}
-            lineWidth={2}
-          />
-          <Text
-            position={[0, bottomY - 1.1, 0.06]}
-            fontSize={0.5}
-            color={LINE}
-            outlineWidth={0.02}
-            outlineColor="#ffffff"
-            anchorX="center"
-            anchorY="middle"
-          >
-            {fmtDist(inFromFt(arrayM.totalWidthFt), units)} wide
-            {isArray ? ` · ${arrayM.count}×` : ''} · {Math.round(metrics.footCandles)} fc ·{' '}
-            {Math.round(metrics.footLamberts)} fL
-          </Text>
+          {/* Width/throw dimension readout: a parametric concept (one shared
+              canvas, one throw distance) that freeform placement doesn't
+              have — hide it there rather than measure something undefined. */}
+          {!freeform && (
+            <>
+              <Line
+                points={[
+                  [-halfW, bottomY - 0.5, 0.02],
+                  [halfW, bottomY - 0.5, 0.02],
+                ]}
+                color={LINE}
+                lineWidth={2}
+              />
+              <Text
+                position={[0, bottomY - 1.1, 0.06]}
+                fontSize={0.5}
+                color={LINE}
+                outlineWidth={0.02}
+                outlineColor="#ffffff"
+                anchorX="center"
+                anchorY="middle"
+              >
+                {fmtDist(inFromFt(widthFt), units)} wide
+                {isArray ? ` · ${count}×` : ''} · {Math.round(footCandles)} fc ·{' '}
+                {Math.round(footLamberts)} fL
+              </Text>
 
-          {/* throw distance along the floor */}
-          <Line
-            points={[
-              [halfW + 1.5, 0.02, 0],
-              [halfW + 1.5, 0.02, distFt],
-            ]}
-            color={LINE}
-            lineWidth={2}
-          />
-          <Text
-            position={[halfW + 2.1, 0.03, distFt / 2]}
-            rotation={[-Math.PI / 2, 0, 0]}
-            fontSize={0.5}
-            color={LINE}
-            outlineWidth={0.02}
-            outlineColor="#ffffff"
-            anchorX="center"
-            anchorY="middle"
-          >
-            {fmtDist(s.projDistance, units)} throw
-          </Text>
+              <Line
+                points={[
+                  [halfW + 1.5, 0.02, 0],
+                  [halfW + 1.5, 0.02, distFt],
+                ]}
+                color={LINE}
+                lineWidth={2}
+              />
+              <Text
+                position={[halfW + 2.1, 0.03, distFt / 2]}
+                rotation={[-Math.PI / 2, 0, 0]}
+                fontSize={0.5}
+                color={LINE}
+                outlineWidth={0.02}
+                outlineColor="#ffffff"
+                anchorX="center"
+                anchorY="middle"
+              >
+                {fmtDist(inFromFt(distFt), units)} throw
+              </Text>
+            </>
+          )}
         </Canvas>
       </div>
 
       <div className="proj-readout">
         <div className="proj-top">
-          <div className={`dvled-verdict ${tone}`}>
-            <span className="dvled-dot" />
-            {BAND_LABEL[metrics.band]}
-            <span className="dvled-sub">
-              {Math.round(metrics.footCandles)} fc on a {metrics.widthFt.toFixed(1)} ×{' '}
-              {metrics.heightFt.toFixed(1)} ft image
-            </span>
-          </div>
+          {freeform ? (
+            <div className="dvled-verdict">
+              Freeform: each projector has its own position, aim, and throw —
+              no single shared canvas to size or measure.
+            </div>
+          ) : (
+            <div className={`dvled-verdict ${tone}`}>
+              <span className="dvled-dot" />
+              {BAND_LABEL[band]}
+              <span className="dvled-sub">
+                {Math.round(footCandles)} fc on a {widthFt.toFixed(1)} ×{' '}
+                {heightFt.toFixed(1)} ft image
+              </span>
+            </div>
+          )}
           {s.projSurfaceView === 'focus' ? (
             <div className="proj-legend">
               <div className="proj-legend-bar" style={{ background: focusGradientCss() }} />
@@ -348,77 +389,80 @@ export function ProjectionScene() {
         </div>
 
         <dl className="dvled-metrics">
-          <div>
-            <dt>Image size</dt>
-            <dd>
-              {(isArray ? arrayM.totalWidthFt : metrics.widthFt).toFixed(1)} ×{' '}
-              {metrics.heightFt.toFixed(1)} ft
-            </dd>
-          </div>
-          <div>
-            <dt>Area</dt>
-            <dd>{Math.round(isArray ? arrayM.totalAreaSqFt : metrics.areaSqFt)} ft²</dd>
-          </div>
-          {isArray && (
-            <div>
-              <dt>Array</dt>
-              <dd>
-                {arrayM.count} wide · {Math.round(s.projArrayOverlapPct)}% overlap
-              </dd>
-            </div>
+          {!freeform && (
+            <>
+              <div>
+                <dt>Image size</dt>
+                <dd>
+                  {widthFt.toFixed(1)} × {heightFt.toFixed(1)} ft
+                </dd>
+              </div>
+              <div>
+                <dt>Area</dt>
+                <dd>{Math.round(areaSqFt)} ft²</dd>
+              </div>
+              {isArray && (
+                <div>
+                  <dt>Array</dt>
+                  <dd>
+                    {count} wide · {Math.round(s.projArrayOverlapPct)}% overlap
+                  </dd>
+                </div>
+              )}
+              {isArray && (
+                <div>
+                  <dt>Combined res</dt>
+                  <dd>
+                    {arrayM.combinedResW.toLocaleString()} × {s.projResH.toLocaleString()} px
+                  </dd>
+                </div>
+              )}
+              <div>
+                <dt>Brightness</dt>
+                <dd>
+                  {Math.round(footCandles)} fc
+                  {isArray ? ` · seams ${Math.round(arrayM.blendFc)}` : ''}
+                </dd>
+              </div>
+              <div>
+                <dt>Luminance</dt>
+                <dd>
+                  {Math.round(footLamberts)} fL · {Math.round(nits)} nits
+                </dd>
+              </div>
+              <div>
+                <dt>Ambient contrast</dt>
+                <dd>{contrastRatio === Infinity ? '∞' : `${contrastRatio.toFixed(1)}:1`}</dd>
+              </div>
+              <div>
+                <dt>Resolution / ft</dt>
+                <dd>
+                  {Math.round(hPpf)} × {Math.round(vPpf)} px
+                </dd>
+              </div>
+            </>
           )}
-          {isArray && (
-            <div>
-              <dt>Combined res</dt>
-              <dd>
-                {arrayM.combinedResW.toLocaleString()} × {s.projResH.toLocaleString()} px
-              </dd>
-            </div>
-          )}
-          <div>
-            <dt>Brightness</dt>
-            <dd>
-              {Math.round(metrics.footCandles)} fc
-              {isArray ? ` · seams ${Math.round(arrayM.blendFc)}` : ''}
-            </dd>
-          </div>
-          <div>
-            <dt>Luminance</dt>
-            <dd>
-              {Math.round(metrics.footLamberts)} fL · {Math.round(metrics.nits)} nits
-            </dd>
-          </div>
-          <div>
-            <dt>Ambient contrast</dt>
-            <dd>
-              {metrics.contrastRatio === Infinity
-                ? '∞'
-                : `${metrics.contrastRatio.toFixed(1)}:1`}
-            </dd>
-          </div>
-          <div>
-            <dt>Resolution / ft</dt>
-            <dd>
-              {Math.round(isArray ? arrayM.hPpf : metrics.hPpf)} × {Math.round(metrics.vPpf)} px
-            </dd>
-          </div>
           <div>
             <dt>Total output</dt>
-            <dd>
-              {(isArray ? arrayM.systemLumens : metrics.effectiveLumens).toLocaleString()} lm
-            </dd>
+            <dd>{Math.round(systemLumens).toLocaleString()} lm</dd>
           </div>
         </dl>
         <p className="dvled-note">
-          Throw ratio {s.projThrowRatio} ·{' '}
-          {s.projectorCount > 1
-            ? `${s.projectorCount} stacked @ ${Math.round(s.projStackEff * 100)}% (${(metrics.effectiveLumens / s.projLumens).toFixed(1)}× lumens) · `
-            : ''}
-          {isArray
-            ? `${arrayM.count} blended across ${arrayM.totalWidthFt.toFixed(1)} ft at ${Math.round(s.projArrayOverlapPct)}% overlap — seams run ~2× bright before the blend curve evens them out. `
-            : ''}
-          brightness is the area-average; lens shift keeps a clean rectangle while tilt
-          keystones it and brightens the near edge. 20 fc is the floor, 400+ is comfortably bright.
+          {freeform ? (
+            'Freeform: width, height, and brightness need one shared canvas, which per-projector placement doesn’t have — only total lumens is shown. Switch to Parametric for the sized readout.'
+          ) : (
+            <>
+              Throw ratio {s.projThrowRatio} ·{' '}
+              {s.projectorCount > 1
+                ? `${s.projectorCount} stacked @ ${Math.round(s.projStackEff * 100)}% (${(metrics.effectiveLumens / s.projLumens).toFixed(1)}× lumens) · `
+                : ''}
+              {isArray
+                ? `${arrayM.count} blended across ${arrayM.totalWidthFt.toFixed(1)} ft at ${Math.round(s.projArrayOverlapPct)}% overlap — seams run ~2× bright before the blend curve evens them out. `
+                : ''}
+              brightness is the area-average; lens shift keeps a clean rectangle while tilt
+              keystones it and brightens the near edge. 20 fc is the floor, 400+ is comfortably bright.
+            </>
+          )}
         </p>
       </div>
     </div>
