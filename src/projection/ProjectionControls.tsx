@@ -5,39 +5,36 @@ import { ProjectorListCard } from './ProjectorListCard';
 import { Card } from '../ui/Card';
 import { fmtDist, fmtLen, fromInches, toInches } from '../ui/units';
 import { distanceFromWidth, widthFromDistance } from './projectionMath';
+import { depthOfFocusIn } from './focusOptics';
 
 // Projector / lens presets — throw ratios pinned to real Barco lenses (full
 // catalog, barco.json: 236 projector bodies / 2111 lens entries), one
 // representative throw value per lens's published min–max zoom range, cross-
-// checked against active (non-EOL) listings only. focusNear/FarPct are % of
-// the resulting throw distance — no projector or lens in the catalog has a
-// depth-of-focus field, so these stay reasoned estimates: shorter lenses sit
-// at a steeper angle of incidence, so the same physical distance error eats a
-// bigger fraction of the (short) throw, hence a tighter band; long-throw
-// lenses tolerate more.
+// checked against active (non-EOL) listings only. The focus band is no
+// longer a hand-picked percentage — it's computed from a physical
+// depth-of-focus model (see ./focusOptics.ts, a reversed-camera DOF formula)
+// driven by each preset's throw ratio and resolution.
 const PRESETS: {
   label: string;
   throw: number;
   lumens: number;
   resW: number;
   resH: number;
-  focusNearPct: number;
-  focusFarPct: number;
 }[] = [
   // ILD 0.37 UST, R9803077 — the most common Barco-branded UST throw ratio
   // (0.37:1 also appears on GLD 0.37-0.40 UST 90°/F80 and G LENS 0.37-0.4:1
   // UST/G-series). The catalog's single shortest lens, FLD+ 0.26:1 (EN68,
   // F400-N4K), isn't actually Barco-branded "UST" — it's an outlier, not
   // representative.
-  { label: 'Ultra-short-throw, 1080p — 0.37 / 4k lm', throw: 0.37, lumens: 4000, resW: 1920, resH: 1080, focusNearPct: 96, focusFarPct: 104 },
+  { label: 'Ultra-short-throw, 1080p — 0.37 / 4k lm', throw: 0.37, lumens: 4000, resW: 1920, resH: 1080 },
   // GLD 0.8-1.0:1, R98017241, F80-4K7 (throw 0.80–1.06)
-  { label: 'Short-throw, 1080p — 0.9 / 4k lm', throw: 0.9, lumens: 4000, resW: 1920, resH: 1080, focusNearPct: 92, focusFarPct: 108 },
+  { label: 'Short-throw, 1080p — 0.9 / 4k lm', throw: 0.9, lumens: 4000, resW: 1920, resH: 1080 },
   // GLD 1.0-1.35:1, R98017221, F80-4K7 (throw 1.00–1.43)
-  { label: 'Install 4K — 1.2 / 10k lm', throw: 1.2, lumens: 10000, resW: 3840, resH: 2160, focusNearPct: 88, focusFarPct: 114 },
+  { label: 'Install 4K — 1.2 / 10k lm', throw: 1.2, lumens: 10000, resW: 3840, resH: 2160 },
   // GLD 1.35-2.0:1, R98017201, F80-4K7 (throw 1.35–2.12)
-  { label: 'Standard, 1080p — 1.5 / 5k lm', throw: 1.5, lumens: 5000, resW: 1920, resH: 1080, focusNearPct: 85, focusFarPct: 118 },
+  { label: 'Standard, 1080p — 1.5 / 5k lm', throw: 1.5, lumens: 5000, resW: 1920, resH: 1080 },
   // GLD 2.0-3.0:1, R98017211, F80-4K7 (throw 2.00–3.18)
-  { label: 'Long-throw event — 2.5 / 20k lm', throw: 2.5, lumens: 20000, resW: 1920, resH: 1200, focusNearPct: 80, focusFarPct: 130 },
+  { label: 'Long-throw event — 2.5 / 20k lm', throw: 2.5, lumens: 20000, resW: 1920, resH: 1200 },
 ];
 
 function Row({
@@ -71,28 +68,41 @@ export function ProjectionControls() {
   const metric = units === 'metric';
 
   // Keep distance and width two ends of one number: editing either (or the
-  // throw ratio) recomputes the other so the store never drifts.
+  // throw ratio) recomputes the other so the store never drifts. Also push
+  // the resulting throw distance to the selected projector's own posIn[2] —
+  // required for its auto-focus band (see withAutoFocus) to see the right
+  // distance regardless of which of distance/width/throw-ratio was edited.
+  function pushDistanceToSelected(distIn: number) {
+    if (!s.selectedProjectorId) return;
+    const p = s.projectors.find((x) => x.id === s.selectedProjectorId);
+    if (p) s.updateProjector(p.id, { posIn: [p.posIn[0], p.posIn[1], distIn] });
+  }
   function setDistance(distIn: number) {
     s.set('projDistance', distIn);
     s.set('projWidth', widthFromDistance(distIn, s.projThrowRatio));
-    if (s.selectedProjectorId) {
-      const p = s.projectors.find((x) => x.id === s.selectedProjectorId);
-      if (p) s.updateProjector(p.id, { posIn: [p.posIn[0], p.posIn[1], distIn] });
-    }
+    pushDistanceToSelected(distIn);
   }
   function setWidth(widthIn: number) {
     s.set('projWidth', widthIn);
-    s.set('projDistance', distanceFromWidth(widthIn, s.projThrowRatio));
+    const distIn = distanceFromWidth(widthIn, s.projThrowRatio);
+    s.set('projDistance', distIn);
+    pushDistanceToSelected(distIn);
   }
   function setThrow(tr: number) {
     s.set('projThrowRatio', tr);
+    let distIn = s.projDistance;
     if (s.projPin === 'width') {
-      s.set('projDistance', distanceFromWidth(s.projWidth, tr));
+      distIn = distanceFromWidth(s.projWidth, tr);
+      s.set('projDistance', distIn);
     } else {
-      s.set('projWidth', widthFromDistance(s.projDistance, tr));
+      s.set('projWidth', widthFromDistance(distIn, tr));
     }
     if (s.selectedProjectorId) {
-      s.updateProjector(s.selectedProjectorId, { throwRatio: tr });
+      const p = s.projectors.find((x) => x.id === s.selectedProjectorId);
+      const posIn: [number, number, number] = p
+        ? [p.posIn[0], p.posIn[1], distIn]
+        : [0, 90, distIn];
+      s.updateProjector(s.selectedProjectorId, { throwRatio: tr, posIn });
     }
   }
 
@@ -114,10 +124,13 @@ export function ProjectionControls() {
   function setResW(w: number) {
     s.set('projResW', w);
     if (s.projResLock && w > 0 && s.projResH > 0) deriveAspectFromRes(w, s.projResH);
+    // resW feeds the selected projector's auto-focus band (withAutoFocus).
+    if (s.selectedProjectorId) s.updateProjector(s.selectedProjectorId, { resW: w });
   }
   function setResH(h: number) {
     s.set('projResH', h);
     if (s.projResLock && h > 0 && s.projResW > 0) deriveAspectFromRes(s.projResW, h);
+    if (s.selectedProjectorId) s.updateProjector(s.selectedProjectorId, { resH: h });
   }
 
   // Slider bounds in the active unit. Distance 1–60 ft; width 2–40 ft.
@@ -179,16 +192,21 @@ export function ProjectionControls() {
             if (s.projResLock) deriveAspectFromRes(p.resW, p.resH);
             setThrow(p.throw);
 
-            // Resolve the throw distance setThrow() above just applied, then
-            // stamp the preset's focus tolerance onto it as absolute inches.
-            const resultDistIn =
-              s.projPin === 'width' ? distanceFromWidth(s.projWidth, p.throw) : s.projDistance;
-            const nearIn = resultDistIn * (p.focusNearPct / 100);
-            const farIn = resultDistIn * (p.focusFarPct / 100);
-            s.set('projFocusNearIn', nearIn);
-            s.set('projFocusFarIn', farIn);
             if (s.selectedProjectorId) {
-              s.updateProjector(s.selectedProjectorId, { focusNearIn: nearIn, focusFarIn: farIn });
+              // Resolve the throw distance setThrow() above just applied, then
+              // stamp resolution/lumens/focus in one update — bundling resW
+              // with the focus band means auto-focus (if on) recomputes from
+              // the new resolution, not whatever was on the instance before.
+              const resultDistIn =
+                s.projPin === 'width' ? distanceFromWidth(s.projWidth, p.throw) : s.projDistance;
+              const { nearIn, farIn } = depthOfFocusIn(p.throw, resultDistIn, p.resW);
+              s.updateProjector(s.selectedProjectorId, {
+                resW: p.resW,
+                resH: p.resH,
+                lumens: p.lumens,
+                focusNearIn: nearIn,
+                focusFarIn: farIn,
+              });
             }
           }}
         >
@@ -569,71 +587,6 @@ export function ProjectionControls() {
           />
         </div>
       )}
-    </Card>
-
-    <Card title="Focus">
-
-      {parametric && (
-        <Row
-          label="Focus at throw distance"
-          title="One-click default: centre the acceptably-sharp band on the current throw distance, ±15%/+25% (near limits hold tighter than far limits on a real lens)."
-        >
-          <button
-            className="sm"
-            onClick={() => {
-              const near = s.projDistance * 0.85;
-              const far = s.projDistance * 1.25;
-              s.set('projFocusNearIn', near);
-              s.set('projFocusFarIn', far);
-              if (s.selectedProjectorId) {
-                s.updateProjector(s.selectedProjectorId, { focusNearIn: near, focusFarIn: far });
-              }
-            }}
-          >
-            Apply
-          </button>
-        </Row>
-      )}
-
-      <Row
-        label="Near limit"
-        title="Nearest distance from the lens that still reads as acceptably sharp."
-      >
-        <span className="num-entry">
-          <input
-            type="number"
-            step={0.1}
-            min={0}
-            value={bigVal(s.projFocusNearIn)}
-            onChange={(e) => {
-              const val = bigToIn(Number(e.target.value));
-              s.set('projFocusNearIn', val);
-              if (s.selectedProjectorId) s.updateProjector(s.selectedProjectorId, { focusNearIn: val });
-            }}
-          />
-          <span className="unit">{bigUnit}</span>
-        </span>
-      </Row>
-
-      <Row
-        label="Far limit"
-        title="Farthest distance from the lens that still reads as acceptably sharp."
-      >
-        <span className="num-entry">
-          <input
-            type="number"
-            step={0.1}
-            min={0}
-            value={bigVal(s.projFocusFarIn)}
-            onChange={(e) => {
-              const val = bigToIn(Number(e.target.value));
-              s.set('projFocusFarIn', val);
-              if (s.selectedProjectorId) s.updateProjector(s.selectedProjectorId, { focusFarIn: val });
-            }}
-          />
-          <span className="unit">{bigUnit}</span>
-        </span>
-      </Row>
     </Card>
 
     <Card title="Environment">

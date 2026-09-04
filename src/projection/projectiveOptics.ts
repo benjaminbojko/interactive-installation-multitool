@@ -2,6 +2,7 @@
 // World units are FEET. Matrices are 16-element column-major numbers matching WebGL.
 
 import type { Vec3, LensOrigin } from './projectionMath';
+import { fieldCurvatureFrac } from './focusOptics';
 
 export type Mat4 = number[];
 
@@ -130,6 +131,7 @@ export interface ProjectorSpec {
   lumens?: number;
   focusNearFt: number;
   focusFarFt: number;
+  fieldCurvatureFrac: number;
 }
 
 export function buildProjectorSpecs(
@@ -151,8 +153,12 @@ export function buildProjectorSpecs(
       projMatrix: proj,
       textureMatrix: texture,
       contentSlice: uRanges[idx] ?? [0, 1],
+      // Hardcoded legacy default, not wired to the physical depthOfFocusIn
+      // model used elsewhere (this builder's signature lacks resW). Used
+      // only by this function's own test.
       focusNearFt: distFt * 0.85,
       focusFarFt: distFt * 1.25,
+      fieldCurvatureFrac: fieldCurvatureFrac(intrinsics.throwRatio),
     };
   });
 }
@@ -199,6 +205,7 @@ export function buildProjectorSpecsFromInstances(
         lumens: p.lumens,
         focusNearFt: Math.max(0.1, p.focusNearIn / 12),
         focusFarFt: p.focusFarIn / 12,
+        fieldCurvatureFrac: fieldCurvatureFrac(p.throwRatio),
       };
     });
 }

@@ -460,14 +460,26 @@ export function rampGradientCss(): string {
 
 // --- focus / depth-of-field band (Focus surface view) ---
 //
-// Projector spec sheets don't publish aperture/circle-of-confusion, so this
-// isn't a physical depth-of-field model — it's a user-defined "stays sharp"
-// band: green fills the near/far range itself (fading to orange only in the
-// last 5% approaching either edge), orange→red covers the 10% just outside
-// each edge, solid red beyond that. Green never appears outside [near, far].
-// The same zones are duplicated in the GLSL focusColor() (projectiveMaterial.ts)
-// for the live shader; this copy only drives the legend gradient, so keep the
-// two in sync by eye if either changes.
+// near/far here come from focusOptics.ts: a reversed-camera depth-of-focus
+// formula driven by real Barco lens F-number data and TI DMD pixel-pitch
+// specs. No vendor publishes per-lens aperture/circle-of-confusion or a
+// Petzval sum, so this is still a literature-grounded approximation, not
+// measured per-unit spec data.
+//
+// The 5%/10% orange/red zone widths below are a UI legibility convention
+// only, unrelated to the physical model: green fills the near/far range
+// itself (fading to orange only in the last 5% approaching either edge),
+// orange→red covers the 10% just outside each edge, solid red beyond that.
+// Green never appears outside [near, far].
+//
+// The live GLSL focusColor() (projectiveMaterial.ts) shares these near/far
+// endpoints and zone widths, but additionally narrows the band per-fragment
+// via a focusBandAtFieldRadius()-style helper that accounts for field
+// curvature across each projector's throw ratio. This legend is a flat 1D
+// CSS gradient and has no way to represent a value that varies by position
+// in the frame, so it will visibly not match how tight the band gets near
+// the corners of the live 3D view — that's expected, not a bug to "fix" by
+// chasing the corners.
 
 const FOCUS_SHARP_RGB: RGB = [46, 204, 113]; // inside the band
 const FOCUS_EDGE_RGB: RGB = [230, 126, 34]; // at the near/far limit

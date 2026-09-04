@@ -37,17 +37,38 @@ uniform float uScreenGain;
 
 uniform float uFocusNear[MAX_PROJ];
 uniform float uFocusFar[MAX_PROJ];
+uniform float uFieldCurvature[MAX_PROJ];
 
 varying vec3 vWorldPosition;
 varying vec3 vWorldNormal;
 
-// Zoned colour, anchored strictly to the near/far band — not a physical
-// DoF/CoC model, projector lenses don't publish aperture data:
+// near/far here come from focusOptics.ts: a reversed-camera depth-of-focus
+// formula driven by real Barco lens F-number data and TI DMD pixel-pitch
+// specs. No vendor publishes per-lens aperture/circle-of-confusion or a
+// Petzval sum, so this remains a literature-grounded approximation, not
+// measured per-unit spec data.
+//
+// The 5%/10% orange/red zone widths below are a UI legibility convention
+// only, unrelated to the physical model:
 //   inside [near, far]            -> green, fading to orange in the last 5%
 //                                     approaching either edge
 //   outside, within 10% of an edge -> orange fading to red
 //   beyond 10% outside either edge -> solid red
 // Green never appears outside [near, far].
+//
+// focusBandAtFieldRadius() below additionally narrows [near, far] per-fragment
+// toward frame corners, modeling Petzval field curvature (worse for
+// short-throw/wide-angle lenses) — this is a CPU-mirrored twin of the
+// same-named function in focusOptics.ts; keep the two in sync by eye if
+// either changes.
+vec2 focusBandAtFieldRadius(float nearD, float farD, float curvFrac, float radius) {
+  float t = clamp(radius / 1.41421356, 0.0, 1.0);
+  float localFrac = curvFrac * t * t;
+  float mid = (nearD + farD) * 0.5;
+  float halfWidth = (farD - nearD) * 0.5 * (1.0 - localFrac);
+  return vec2(mid - halfWidth, mid + halfWidth);
+}
+
 vec3 focusColor(float dist, float nearD, float farD) {
   vec3 sharp = vec3(0.1804, 0.8, 0.4431);
   vec3 edge = vec3(0.9020, 0.4941, 0.1333);
@@ -139,7 +160,8 @@ void main() {
     float globalU = mix(uContentSlice[i].x, uContentSlice[i].y, uv.x);
     vec4 texColor = texture2D(uContentTex, vec2(globalU, uv.y));
     accumulatedContent += texColor * blend;
-    accumulatedFocus += focusColor(dist, uFocusNear[i], uFocusFar[i]) * blend;
+    vec2 band = focusBandAtFieldRadius(uFocusNear[i], uFocusFar[i], uFieldCurvature[i], length((uv - 0.5) * 2.0));
+    accumulatedFocus += focusColor(dist, band.x, band.y) * blend;
     totalWeight += blend;
   }
 
@@ -218,6 +240,7 @@ export function createProjectiveMaterial(): THREE.ShaderMaterial {
       uScreenGain: { value: 1.0 },
       uFocusNear: { value: new Float32Array(MAX_PROJECTORS) },
       uFocusFar: { value: new Float32Array(MAX_PROJECTORS) },
+      uFieldCurvature: { value: new Float32Array(MAX_PROJECTORS) },
     },
   });
 }
@@ -252,6 +275,7 @@ export function updateProjectiveMaterialUniforms(
     (u.uContentSlice.value[i] as THREE.Vector2).set(s.contentSlice[0], s.contentSlice[1]);
     u.uFocusNear.value[i] = s.focusNearFt;
     u.uFocusFar.value[i] = s.focusFarFt;
+    u.uFieldCurvature.value[i] = s.fieldCurvatureFrac;
     const shadowTex = shadowTextures[i];
     if (shadowTex) {
       u.uShadowMap.value[i] = shadowTex;

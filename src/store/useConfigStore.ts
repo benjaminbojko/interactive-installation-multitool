@@ -14,6 +14,7 @@ import {
   PROJECTOR_SHARED_KEYS,
   createDefaultProjector,
   arrangeInArray,
+  withAutoFocus,
 } from '../projection/projectorConfig';
 import { dataFields, validateAndApply, withoutContent } from './snapshot';
 import { deleteModelBlob } from './modelBlobStore';
@@ -133,8 +134,7 @@ export interface ConfigState {
   projLensShiftPct: number; // vertical lens shift, % of half image height; +up/−down
   projLensOrigin: LensOrigin; // where 0% shift sits: lens centre, or top-aligned (periscope)
   projTiltDeg: number; // projector tilt; 0 = perpendicular, nonzero = keystone
-  projFocusNearIn: number; // in, near limit of the acceptably-sharp band
-  projFocusFarIn: number; // in, far limit of the acceptably-sharp band
+  projFocusAuto: boolean; // recompute every projector's focus band from its own throw ratio/distance/resolution (same lens assumption for all units)
   projShowFigure: boolean; // show a to-scale person for size reference
   projSurfaceView: SurfaceView; // heatmap, projected content, or focus band
   projCanvasType: 'wall' | 'curved' | 'cylinder' | 'model'; // projection canvas surface
@@ -203,6 +203,7 @@ export interface ConfigState {
   selectProjector: (id: string | null) => void;
   arrangeProjectorsInArray: (count: number, overlapPct: number) => void;
   applyProjectorToAll: (id: string) => void;
+  setFocusAuto: (auto: boolean) => void;
 }
 
 /** The serializable fields only — the store minus its action functions. This is
@@ -221,6 +222,7 @@ export type ConfigData = Omit<
   | 'selectProjector'
   | 'arrangeProjectorsInArray'
   | 'applyProjectorToAll'
+  | 'setFocusAuto'
 >;
 
 export const INITIAL: ConfigData = {
@@ -308,8 +310,7 @@ export const INITIAL: ConfigData = {
   projLensShiftPct: 0, // image centred on the lens axis
   projLensOrigin: 'center',
   projTiltDeg: 0, // perpendicular → no keystone
-  projFocusNearIn: 153, // 12.75 ft
-  projFocusFarIn: 225, // 18.75 ft
+  projFocusAuto: true,
   projShowFigure: true,
   projSurfaceView: 'heatmap',
   projCanvasType: 'wall',
@@ -432,7 +433,7 @@ export const useConfigStore = create<ConfigState>()(
             ],
           };
           set({
-            projectors: [...s.projectors, newProj],
+            projectors: [...s.projectors, withAutoFocus(newProj, s.projFocusAuto)],
             selectedProjectorId: id,
           });
           return id;
@@ -451,7 +452,9 @@ export const useConfigStore = create<ConfigState>()(
         updateProjector: (id, partial) => {
           const s = get();
           set({
-            projectors: s.projectors.map((p) => (p.id === id ? { ...p, ...partial } : p)),
+            projectors: s.projectors.map((p) =>
+              p.id === id ? withAutoFocus({ ...p, ...partial }, s.projFocusAuto) : p,
+            ),
           });
         },
 
@@ -478,8 +481,19 @@ export const useConfigStore = create<ConfigState>()(
             s.projWidth,
             s.projDistance,
             s.projLensAff,
+            s.projFocusAuto,
           );
           set({ projectors: next, selectedProjectorId: next[0]?.id ?? null });
+        },
+
+        setFocusAuto: (auto) => {
+          const s = get();
+          set({
+            projFocusAuto: auto,
+            // Turning Auto on re-syncs every projector immediately, rather than
+            // waiting for the next unrelated edit to trigger a recompute.
+            projectors: auto ? s.projectors.map((p) => withAutoFocus(p, true)) : s.projectors,
+          });
         },
 
         applyRecommendedMount: () => {

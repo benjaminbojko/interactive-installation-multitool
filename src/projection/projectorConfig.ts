@@ -1,4 +1,5 @@
 import type { LensOrigin } from './projectionMath';
+import { depthOfFocusIn } from './focusOptics';
 
 export type TransformGizmoMode = 'translate' | 'rotate';
 export type TransformGizmoSpace = 'world' | 'local';
@@ -48,29 +49,51 @@ export const PROJECTOR_SHARED_KEYS = [
   'focusFarIn',
 ] as const satisfies readonly (keyof ProjectorInstance)[];
 
+// If auto is on, recomputes focusNearIn/focusFarIn from the projector's own
+// throwRatio/posIn[2]/resW; otherwise returns it unchanged. `auto` is a single
+// global setting (all projectors assumed to share the same lens/focal-range
+// behavior — see projFocusAuto in useConfigStore.ts), not per-instance. Single
+// source of truth for auto-focus, applied everywhere a projector's throw
+// ratio, distance, or resolution can change (updateProjector, array layout,
+// new-projector creation) so the toggle stays correct regardless of entry point.
+export function withAutoFocus(p: ProjectorInstance, auto: boolean): ProjectorInstance {
+  if (!auto) return p;
+  // posIn[2]'s sign reflects which side of the origin the projector sits on
+  // (e.g. a freeform unit placed behind the scene and yawed 180° to face back
+  // in), not whether the throw distance is valid — take the magnitude.
+  const focus = depthOfFocusIn(p.throwRatio, Math.abs(p.posIn[2]), p.resW);
+  return { ...p, focusNearIn: focus.nearIn, focusFarIn: focus.farIn };
+}
+
 export function createDefaultProjector(
   id: string,
   name: string,
   posIn: [number, number, number] = [0, 90, 180],
 ): ProjectorInstance {
-  return {
-    id,
-    name,
-    enabled: true,
-    posIn,
-    rotDeg: [0, 0, 0],
-    throwRatio: 1.5,
-    lumens: 4000,
-    aspectW: 16,
-    aspectH: 9,
-    resW: 1920,
-    resH: 1080,
-    lensShiftPct: 0,
-    lensShiftXPct: 0,
-    lensOrigin: 'center',
-    focusNearIn: posIn[2] * 0.85, // focused near the wall by default
-    focusFarIn: posIn[2] * 1.25,
-  };
+  // A fresh projector always starts with a correctly computed band, regardless
+  // of the global auto-focus setting — that toggle governs recalculation on
+  // later changes, not this initial value.
+  return withAutoFocus(
+    {
+      id,
+      name,
+      enabled: true,
+      posIn,
+      rotDeg: [0, 0, 0],
+      throwRatio: 1.5,
+      lumens: 4000,
+      aspectW: 16,
+      aspectH: 9,
+      resW: 1920,
+      resH: 1080,
+      lensShiftPct: 0,
+      lensShiftXPct: 0,
+      lensOrigin: 'center',
+      focusNearIn: 0,
+      focusFarIn: 0,
+    },
+    true,
+  );
 }
 
 export const INITIAL_PROJECTORS: ProjectorInstance[] = [
@@ -84,6 +107,7 @@ export function arrangeInArray(
   imageWidthIn: number,
   distanceIn: number,
   lensAffIn: number,
+  focusAuto: boolean,
 ): ProjectorInstance[] {
   const overlapIn = (overlapPct / 100) * imageWidthIn;
   const stepX = imageWidthIn - overlapIn;
@@ -95,20 +119,30 @@ export function arrangeInArray(
     const existing = current[i];
     const x = startX + i * stepX;
     if (existing) {
-      result.push({
-        ...existing,
-        posIn: [x, lensAffIn, distanceIn],
-        rotDeg: [0, 0, 0],
-      });
+      result.push(
+        withAutoFocus(
+          {
+            ...existing,
+            posIn: [x, lensAffIn, distanceIn],
+            rotDeg: [0, 0, 0],
+          },
+          focusAuto,
+        ),
+      );
     } else {
       const template = current[0] ?? createDefaultProjector(`proj-${i + 1}`, `Projector ${i + 1}`);
-      result.push({
-        ...template,
-        id: `proj-${Date.now()}-${i}`,
-        name: `Projector ${i + 1}`,
-        posIn: [x, lensAffIn, distanceIn],
-        rotDeg: [0, 0, 0],
-      });
+      result.push(
+        withAutoFocus(
+          {
+            ...template,
+            id: `proj-${Date.now()}-${i}`,
+            name: `Projector ${i + 1}`,
+            posIn: [x, lensAffIn, distanceIn],
+            rotDeg: [0, 0, 0],
+          },
+          focusAuto,
+        ),
+      );
     }
   }
   return result;

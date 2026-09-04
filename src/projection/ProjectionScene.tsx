@@ -177,6 +177,7 @@ export function ProjectionScene() {
   // parametric single-projector numbers, and the UI hides the readouts
   // that would otherwise misrepresent a freeform setup as one flat image.
   const freeform = s.projGeometryMode === 'freeform';
+  const sel = s.projectors.find((p) => p.id === s.selectedProjectorId) ?? s.projectors[0];
 
   const specs = useMemo(
     () => buildProjectorSpecsFromInstances(s.projectors, uRanges),
@@ -365,10 +366,16 @@ export function ProjectionScene() {
                 <span>Blurred</span>
               </div>
               <div className="proj-legend-caption">
-                Focus band {fmtDist(s.projFocusNearIn, units)}
-                {'–'}
-                {fmtDist(s.projFocusFarIn, units)}, sharpest around{' '}
-                {fmtDist((s.projFocusNearIn + s.projFocusFarIn) / 2, units)}
+                {sel && (
+                  <>
+                    Focus band {fmtDist(sel.focusNearIn, units)}
+                    {'–'}
+                    {fmtDist(sel.focusFarIn, units)}, sharpest around{' '}
+                    {fmtDist((sel.focusNearIn + sel.focusFarIn) / 2, units)}{' '}
+                    (tightens toward frame corners)
+                    {s.projectors.length > 1 ? ' — selected projector, others may differ' : ''}
+                  </>
+                )}
               </div>
             </div>
           ) : (

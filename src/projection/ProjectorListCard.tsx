@@ -2,6 +2,7 @@ import { useConfigStore } from '../store/useConfigStore';
 import { useGizmoShortcuts } from './useGizmoShortcuts';
 import { Card } from '../ui/Card';
 import type { ProjectorInstance } from './projectorConfig';
+import { depthOfFocusIn } from './focusOptics';
 
 function round1(n: number): number {
   return Math.round(n * 10) / 10;
@@ -72,6 +73,17 @@ export function ProjectorListCard() {
         >
           Apply to all
         </button>
+        <label
+          style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--muted)', marginLeft: 'auto' }}
+          title="Recompute every projector's focus band automatically from its own throw ratio, distance, and resolution — assumes all units use the same lens/focal-range behavior."
+        >
+          <input
+            type="checkbox"
+            checked={s.projFocusAuto}
+            onChange={(e) => s.setFocusAuto(e.target.checked)}
+          />
+          Auto-focus
+        </label>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }}>
@@ -253,6 +265,58 @@ export function ProjectorListCard() {
                 />
               </label>
             </div>
+          </div>
+
+          <div
+            className="field"
+            title="Distance from the lens the projected image stays acceptably sharp — computed from throw ratio, resolution, and distance."
+          >
+            <div className="field-head">
+              <span className="row-label">Focus band</span>
+              <button
+                className="sm"
+                disabled={s.projFocusAuto}
+                onClick={() => {
+                  const { nearIn, farIn } = depthOfFocusIn(sel.throwRatio, Math.abs(sel.posIn[2]), sel.resW);
+                  updateSel({ focusNearIn: nearIn, focusFarIn: farIn });
+                }}
+                title={
+                  s.projFocusAuto
+                    ? 'Auto is on — the band already tracks throw ratio, distance, and resolution.'
+                    : "Recompute the focus band from this projector's current throw ratio, resolution, and distance."
+                }
+              >
+                Recompute
+              </button>
+            </div>
+            <label className="row" title="Nearest distance from the lens that still reads as acceptably sharp.">
+              <span className="row-label">Near limit</span>
+              <span className="num-entry">
+                <input
+                  type="number"
+                  step={0.1}
+                  min={0}
+                  disabled={s.projFocusAuto}
+                  value={toDisplay(sel.focusNearIn)}
+                  onChange={(e) => updateSel({ focusNearIn: fromDisplay(Number(e.target.value)) })}
+                />
+                <span className="unit">{unit}</span>
+              </span>
+            </label>
+            <label className="row" title="Farthest distance from the lens that still reads as acceptably sharp.">
+              <span className="row-label">Far limit</span>
+              <span className="num-entry">
+                <input
+                  type="number"
+                  step={0.1}
+                  min={0}
+                  disabled={s.projFocusAuto}
+                  value={toDisplay(sel.focusFarIn)}
+                  onChange={(e) => updateSel({ focusFarIn: fromDisplay(Number(e.target.value)) })}
+                />
+                <span className="unit">{unit}</span>
+              </span>
+            </label>
           </div>
         </>
       )}
