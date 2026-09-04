@@ -158,6 +158,33 @@ export function ProjectionControls() {
 
   return (
     <>
+      <div className="panel">
+        <Row label="Show">
+          <span className="seg sm">
+            <button
+              className={s.projSurfaceView === 'heatmap' ? 'on' : ''}
+              onClick={() => s.set('projSurfaceView', 'heatmap')}
+            >
+              Heatmap
+            </button>
+            <button
+              className={s.projSurfaceView === 'content' ? 'on' : ''}
+              onClick={() => s.set('projSurfaceView', 'content')}
+            >
+              Content
+            </button>
+            <button
+              className={s.projSurfaceView === 'focus' ? 'on' : ''}
+              onClick={() => s.set('projSurfaceView', 'focus')}
+            >
+              Focus
+            </button>
+          </span>
+        </Row>
+
+        {s.projSurfaceView === 'content' && <ContentUpload />}
+      </div>
+
       <Card title="Projector">
 
       <Row
@@ -734,31 +761,6 @@ export function ProjectionControls() {
           <span className="unit">×</span>
         </span>
       </Row>
-
-      <Row label="Show">
-        <span className="seg sm">
-          <button
-            className={s.projSurfaceView === 'heatmap' ? 'on' : ''}
-            onClick={() => s.set('projSurfaceView', 'heatmap')}
-          >
-            Heatmap
-          </button>
-          <button
-            className={s.projSurfaceView === 'content' ? 'on' : ''}
-            onClick={() => s.set('projSurfaceView', 'content')}
-          >
-            Content
-          </button>
-          <button
-            className={s.projSurfaceView === 'focus' ? 'on' : ''}
-            onClick={() => s.set('projSurfaceView', 'focus')}
-          >
-            Focus
-          </button>
-        </span>
-      </Row>
-
-      {s.projSurfaceView === 'content' && <ContentUpload />}
 
       <label className="check">
         <input
