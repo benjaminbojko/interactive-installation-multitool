@@ -2,6 +2,7 @@ import { useConfigStore } from '../store/useConfigStore';
 import { ContentUpload } from '../ui/ContentUpload';
 import { DimensionControls } from '../ui/DimensionControls';
 import { fmtDist, fromInches, toInches } from '../ui/units';
+import { Card } from '../ui/Card';
 import { CABINET_PRESETS, ledBuild } from './cabinets';
 import { emitterWidthForPitch, pitchFillFraction } from './optics';
 
@@ -117,8 +118,8 @@ export function DvLedControls() {
   );
 
   return (
-    <div className="panel">
-      <h2>LED wall</h2>
+    <>
+      <Card title="LED wall">
 
       <Row label="Preset">
         <select
@@ -277,8 +278,9 @@ export function DvLedControls() {
           pitch pairing isn't a real product. Pick a pitch that divides both edges.
         </p>
       )}
+    </Card>
 
-      <h2>Your viewpoint</h2>
+      <Card title="Your viewpoint">
 
       <div className="field">
         <div className="field-head">
@@ -312,8 +314,9 @@ export function DvLedControls() {
         />
         <p className="hint">How wide a cone of the wall the frame represents (~40° ≈ a relaxed, eyes-forward gaze).</p>
       </div>
+    </Card>
 
-      <h2>Panel look</h2>
+      <Card title="Panel look">
 
       <label className="check">
         <input
@@ -358,8 +361,9 @@ export function DvLedControls() {
           </button>
         </span>
       </Row>
+    </Card>
 
-      <h2>What the wall shows</h2>
+      <Card title="What the wall shows">
       <Row label="View">
         <span className="seg">
           <button className={ledView === 'content' ? 'on' : ''} onClick={() => set('ledView', 'content')}>
@@ -375,19 +379,22 @@ export function DvLedControls() {
           ? 'Content off — a bare wall with the cabinet seams drawn on it, so you can see the build and where the joins land.'
           : 'Drive the uploaded image or the test pattern onto the wall.'}
       </p>
+    </Card>
 
-      <h2>Scale reference</h2>
-      <label className="check">
-        <input
-          type="checkbox"
-          checked={dvledShowScale}
-          onChange={(e) => set('dvledShowScale', e.target.checked)}
-        />
-        Show person + scale bar
-      </label>
+      <Card title="Scale reference">
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={dvledShowScale}
+            onChange={(e) => set('dvledShowScale', e.target.checked)}
+          />
+          Show person + scale bar
+        </label>
+      </Card>
 
-      <h2>Content</h2>
-      <ContentUpload />
-    </div>
+      <Card title="Content">
+        <ContentUpload />
+      </Card>
+    </>
   );
 }

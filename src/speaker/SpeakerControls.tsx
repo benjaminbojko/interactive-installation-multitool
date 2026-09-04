@@ -1,5 +1,6 @@
 import { useConfigStore } from '../store/useConfigStore';
 import { fmtLen, fromInches, toInches } from '../ui/units';
+import { Card } from '../ui/Card';
 import {
   COMMON_TAPS,
   MOUNT_DEFAULTS,
@@ -108,8 +109,8 @@ export function SpeakerControls() {
   const posStep = metric ? 5 : 2;
 
   return (
-    <div className="panel">
-      <h2>Speakers</h2>
+    <>
+      <Card title="Speakers">
 
       <Row label="Unit">
         <span className="seg sm wrap">
@@ -226,8 +227,9 @@ export function SpeakerControls() {
         On-axis SPL @ 1 m = sensitivity + 10·log10(W), capped at Max SPL. A conical
         spec (like 135°) means H = V.
       </p>
+      </Card>
 
-      <h2>Mount &amp; aim</h2>
+      <Card title="Mount & aim">
       <Row label="Mount">
         <span className="seg sm">
           {MOUNTS.map((m) => (
@@ -263,8 +265,9 @@ export function SpeakerControls() {
         <input className="slider" type="range" min={-180} max={180} step={1} value={spk.yawDeg}
           onChange={(e) => updateSel({ yawDeg: Number(e.target.value) })} />
       </div>
+      </Card>
 
-      <h2>Position</h2>
+      <Card title="Position">
       <div className="field">
         <div className="field-head">
           <span className="row-label">Forward</span>
@@ -283,8 +286,9 @@ export function SpeakerControls() {
           value={round(fromInches(spk.xIn, units))}
           onChange={(e) => updateSel({ xIn: toInches(Number(e.target.value), units) })} />
       </div>
+      </Card>
 
-      <h2>Amplifier</h2>
+      <Card title="Amplifier">
       <Row
         label="Amp power"
         info={
@@ -307,8 +311,9 @@ export function SpeakerControls() {
         {s.speakers.reduce((sum, u) => sum + u.powerW, 0)} W of taps — see “Amp load”
         in the readout for budget headroom.
       </p>
+      </Card>
 
-      <h2>Listening scenario</h2>
+      <Card title="Listening scenario">
       <Row label="Programme">
         <span className="seg sm wrap">
           {USE_CASE_IDS.map((id) => (
@@ -367,8 +372,9 @@ export function SpeakerControls() {
           scenario wants ~{USE_CASES[s.speakerUseCase].targetSnr} dB over it.
         </p>
       </div>
+    </Card>
 
-      <h2>Listener</h2>
+      <Card title="Listener">
       <div className="field">
         <div className="field-head">
           <span className="row-label">Forward</span>
@@ -387,8 +393,9 @@ export function SpeakerControls() {
           value={round(fromInches(s.speakerListenerX, units))}
           onChange={(e) => s.set('speakerListenerX', toInches(Number(e.target.value), units))} />
       </div>
+    </Card>
 
-      <h2>Coverage map</h2>
+      <Card title="Coverage map">
       <Row label="Show">
         <span className="seg sm">
           <button className={s.speakerCoverageView === 'spl' ? 'on' : ''} onClick={() => s.set('speakerCoverageView', 'spl')}>
@@ -410,6 +417,7 @@ export function SpeakerControls() {
           onChange={(e) => s.set('speakerShowMeasurements', e.target.checked)} />
         Show measurements
       </label>
-    </div>
-  );
+    </Card>
+  </>
+);
 }

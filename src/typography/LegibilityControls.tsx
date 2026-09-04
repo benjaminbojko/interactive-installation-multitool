@@ -4,6 +4,7 @@ import type { Units } from '../store/useConfigStore';
 import type { LegibilityClass, SampleReport, TypeSample } from './legibility';
 import { CalibrationModal } from '../ui/CalibrationModal';
 import { TrueScalePreview } from './TrueScalePreview';
+import { Card } from '../ui/Card';
 
 const CLASS_LABEL: Record<LegibilityClass, string> = {
   illegible: 'unreadable',
@@ -80,8 +81,8 @@ export function LegibilityControls() {
     setSamples([...s.typeSamples, { label: `Style ${s.typeSamples.length + 1}`, fontPx: 24 }]);
 
   return (
-    <div className="panel">
-      <h2>Type &amp; Legibility</h2>
+    <>
+      <Card title="Type & Legibility">
       <p className="hint">
         How big your type actually looks to a viewer at the effective distance. Sizes
         are judged by the angle they subtend — the eye resolves ~1′ per stroke, so a
@@ -139,8 +140,9 @@ export function LegibilityControls() {
           onChange={(e) => s.set('typeSampleText', e.target.value)}
         />
       </div>
+      </Card>
 
-      <h2>See it two ways</h2>
+      <Card title="See it two ways">
 
       <div className="legi-mode">
         <div className="legi-mode-head">
@@ -192,6 +194,7 @@ export function LegibilityControls() {
           </button>
         )}
       </div>
+    </Card>
 
       {calibrating && <CalibrationModal onClose={() => setCalibrating(false)} />}
       {trueScale && (
@@ -203,6 +206,6 @@ export function LegibilityControls() {
           }}
         />
       )}
-    </div>
+    </>
   );
 }

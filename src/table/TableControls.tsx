@@ -12,6 +12,7 @@ import { useConfigStore } from '../store/useConfigStore';
 import { ContentUpload } from '../ui/ContentUpload';
 import { DimensionControls } from '../ui/DimensionControls';
 import { fmtLen, fromInches, toInches } from '../ui/units';
+import { Card } from '../ui/Card';
 
 const PERSONA_IDS: PersonaId[] = ['adult', 'child', 'wheelchair'];
 
@@ -86,8 +87,7 @@ export function TableControls() {
 
   return (
     <>
-      <div className="panel">
-        <h2>Table surface</h2>
+      <Card title="Table surface">
         <p className="hint">
           A flat, face-up touchscreen you stand or sit at. Reach is a depth problem
           here — how far you can touch across the surface — not a wall-height one.
@@ -144,8 +144,9 @@ export function TableControls() {
             adds to the reach-across distance.
           </p>
         </div>
+      </Card>
 
-        <h2>Screen</h2>
+      <Card title="Screen">
         <Row label="Preset">
           <select
             value=""
@@ -190,8 +191,9 @@ export function TableControls() {
             onChange={(e) => set('tableHorizontalPixels', Number(e.target.value))}
           />
         </Row>
+      </Card>
 
-        <h2>Who's using it</h2>
+      <Card title="Who's using it">
         <Row label="Viewer">
           <span className="seg">
             {PERSONA_IDS.map((id) => (
@@ -225,10 +227,11 @@ export function TableControls() {
             />
           </span>
         </label>
+      </Card>
 
-        <h2>Content</h2>
+      <Card title="Content">
         <ContentUpload />
-      </div>
+      </Card>
     </>
   );
 }

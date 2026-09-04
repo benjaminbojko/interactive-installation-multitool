@@ -1,6 +1,7 @@
 import { PERSONAS, type PersonaId } from '../ergonomics/constants';
 import { useConfigStore } from '../store/useConfigStore';
 import { fmtLen, fromInches, toInches } from '../ui/units';
+import { Card } from '../ui/Card';
 import {
   modeProfileIn,
   MOUNT_DEFAULTS,
@@ -88,8 +89,8 @@ export function SensorControls() {
   const sideMax = metric ? 365 : 144;
 
   return (
-    <div className="panel">
-      <h2>Sensor</h2>
+    <>
+      <Card title="Sensor">
 
       <Row label="Preset">
         <select value="" onChange={(e) => applySensor(Number(e.target.value))}>
@@ -116,8 +117,9 @@ export function SensorControls() {
           <span className="unit">°</span>
         </span>
       </Row>
+    </Card>
 
-      <h2>Sensing task</h2>
+      <Card title="Sensing task">
       <div className="btn-grid">
         {MODES.map((m) => (
           <button key={m.id} className={s.sensorMode === m.id ? 'on' : ''}
@@ -160,8 +162,9 @@ export function SensorControls() {
         Reliable near/far is the high-confidence sweet spot; tracking ramps to zero
         between there and the hard limits. Picking a mode reseeds these.
       </p>
+    </Card>
 
-      <h2>Mount</h2>
+      <Card title="Mount">
       <Row label="Mount">
         <span className="seg sm">
           {MOUNTS.map((m) => (
@@ -206,8 +209,9 @@ export function SensorControls() {
             onChange={(e) => s.set('sensorWallDist', toInches(Number(e.target.value), units))} />
         </div>
       )}
+    </Card>
 
-      <h2>Aim</h2>
+      <Card title="Aim">
       <div className="field">
         <div className="field-head">
           <span className="row-label">Tilt (pitch)</span>
@@ -225,8 +229,9 @@ export function SensorControls() {
         <input className="slider" type="range" min={-180} max={180} step={1} value={s.sensorYawDeg}
           onChange={(e) => s.set('sensorYawDeg', Number(e.target.value))} />
       </div>
+    </Card>
 
-      <h2>Person</h2>
+      <Card title="Person">
       <Row label="Body">
         <span className="seg sm">
           {PERSONA_IDS.map((id) => (
@@ -266,6 +271,7 @@ export function SensorControls() {
           onChange={(e) => s.set('sensorShowMeasurements', e.target.checked)} />
         Show measurements
       </label>
-    </div>
-  );
+    </Card>
+  </>
+);
 }

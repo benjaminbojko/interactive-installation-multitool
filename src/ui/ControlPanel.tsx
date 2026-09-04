@@ -3,6 +3,7 @@ import { useConfigStore } from '../store/useConfigStore';
 import { fromInches, lenUnit, toInches } from './units';
 import { ContentUpload } from './ContentUpload';
 import { DimensionControls } from './DimensionControls';
+import { Card } from './Card';
 
 type Preset = { label: string; diagonal: number; aspectW: number; aspectH: number };
 
@@ -59,8 +60,8 @@ export function ControlPanel() {
   const u = lenUnit(units);
 
   return (
-    <div className="panel">
-      <h2>Screen</h2>
+    <>
+      <Card title="Screen">
 
       <Row label="Preset">
         <select
@@ -158,8 +159,9 @@ export function ControlPanel() {
           onChange={(e) => s.set('tiltDeg', Number(e.target.value))}
         />
       </div>
+    </Card>
 
-      <h2>Context</h2>
+      <Card title="Context">
 
       <Row label="Use mode">
         <span className="seg">
@@ -256,8 +258,9 @@ export function ControlPanel() {
           </p>
         </div>
       )}
+    </Card>
 
-      <h2>Resolution</h2>
+    <Card title="Resolution">
       <Row label="Specify by">
         <span className="seg">
           <button
@@ -293,10 +296,12 @@ export function ControlPanel() {
           />
         </Row>
       )}
+    </Card>
 
-      <h2>Content</h2>
-      <ContentUpload />
-    </div>
+      <Card title="Content">
+        <ContentUpload />
+      </Card>
+    </>
   );
 }
 

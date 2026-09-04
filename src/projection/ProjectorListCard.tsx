@@ -1,5 +1,6 @@
 import { useConfigStore } from '../store/useConfigStore';
 import { useGizmoShortcuts } from './useGizmoShortcuts';
+import { Card } from '../ui/Card';
 import type { ProjectorInstance } from './projectorConfig';
 
 function round1(n: number): number {
@@ -38,9 +39,9 @@ export function ProjectorListCard() {
   }
 
   return (
-    <div className="panel">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <h2 style={{ margin: 0 }}>Projectors ({s.projectors.length}/4)</h2>
+    <Card
+      title={`Projectors (${s.projectors.length}/4)`}
+      headerAction={
         <div style={{ display: 'flex', gap: 6 }}>
           <button
             className="sm"
@@ -58,7 +59,8 @@ export function ProjectorListCard() {
             Array
           </button>
         </div>
-      </div>
+      }
+    >
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }}>
         {s.projectors.map((p, idx) => {
@@ -220,6 +222,6 @@ export function ProjectorListCard() {
           </div>
         </>
       )}
-    </div>
+    </Card>
   );
 }

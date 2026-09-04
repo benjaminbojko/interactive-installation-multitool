@@ -2,6 +2,7 @@ import { useConfigStore } from '../store/useConfigStore';
 import { ContentUpload } from '../ui/ContentUpload';
 import { ModelUpload } from '../ui/ModelUpload';
 import { ProjectorListCard } from './ProjectorListCard';
+import { Card } from '../ui/Card';
 import { fmtDist, fmtLen, fromInches, toInches } from '../ui/units';
 import { distanceFromWidth, widthFromDistance } from './projectionMath';
 
@@ -119,8 +120,7 @@ export function ProjectionControls() {
 
   return (
     <>
-      <div className="panel">
-        <h2>Projector</h2>
+      <Card title="Projector">
 
       <Row label="Preset">
         <select
@@ -292,12 +292,11 @@ export function ProjectionControls() {
           </button>
         </span>
       </Row>
-    </div>
+    </Card>
 
     <ProjectorListCard />
 
-    <div className="panel">
-      <h2>Geometry</h2>
+    <Card title="Geometry">
 
       <Row
         label="Drive by"
@@ -475,10 +474,9 @@ export function ProjectionControls() {
           }}
         />
       </div>
-    </div>
+    </Card>
 
-    <div className="panel">
-      <h2>Environment</h2>
+    <Card title="Environment">
 
       <div
         className="field"
@@ -498,10 +496,9 @@ export function ProjectionControls() {
           onChange={(e) => s.set('projAmbientFc', Number(e.target.value))}
         />
       </div>
-    </div>
+    </Card>
 
-    <div className="panel">
-      <h2>Surface</h2>
+    <Card title="Surface">
 
       <Row label="Canvas">
         <span className="seg sm">
@@ -652,7 +649,7 @@ export function ProjectionControls() {
         />
         Show person for scale
       </label>
-    </div>
+    </Card>
   </>
 );
 }
