@@ -8,6 +8,7 @@ export interface LocalFrustumParams {
   aspectW: number;
   aspectH: number;
   lensShiftPct: number;
+  lensShiftXPct?: number;
   lensOrigin: LensOrigin;
   distanceFt: number;
 }
@@ -27,13 +28,14 @@ export function computeLocalFrustumCorners(p: LocalFrustumParams): {
   const topY = baselineTop + shiftY;
   const bottomY = topY - h;
   const halfW = w / 2;
+  const centerX = ((p.lensShiftXPct ?? 0) / 100) * halfW;
 
   return {
     lens: [0, 0, 0],
-    topLeft: [-halfW, topY, -d],
-    topRight: [halfW, topY, -d],
-    bottomRight: [halfW, bottomY, -d],
-    bottomLeft: [-halfW, bottomY, -d],
+    topLeft: [centerX - halfW, topY, -d],
+    topRight: [centerX + halfW, topY, -d],
+    bottomRight: [centerX + halfW, bottomY, -d],
+    bottomLeft: [centerX - halfW, bottomY, -d],
   };
 }
 

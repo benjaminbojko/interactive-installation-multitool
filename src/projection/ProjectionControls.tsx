@@ -137,10 +137,35 @@ export function ProjectionControls() {
   const distVal = round(fromInches(s.projDistance, units));
   const widthVal = round(fromInches(s.projWidth, units));
   const pinDistance = s.projPin === 'distance';
+  const parametric = s.projGeometryMode === 'parametric';
+  const freeform = !parametric;
+  const sel = s.projectors.find((p) => p.id === s.selectedProjectorId);
+  const vertShiftVal = freeform && sel ? sel.lensShiftPct : s.projLensShiftPct;
+  const horizShiftVal = sel?.lensShiftXPct ?? 0;
 
   return (
     <>
       <Card title="Projector">
+
+      <Row
+        label="Geometry mode"
+        title="Parametric: position/rotation are computed from throw distance, lens height, tilt, and array layout. Freeform: drag the 3D gizmo or type coordinates directly — the parametric fields stop writing to the transform."
+      >
+        <span className="seg sm">
+          <button
+            className={parametric ? 'on' : ''}
+            onClick={() => s.set('projGeometryMode', 'parametric')}
+          >
+            Parametric
+          </button>
+          <button
+            className={!parametric ? 'on' : ''}
+            onClick={() => s.set('projGeometryMode', 'freeform')}
+          >
+            Freeform
+          </button>
+        </span>
+      </Row>
 
       <Row label="Preset">
         <select
@@ -237,39 +262,43 @@ export function ProjectionControls() {
         </Row>
       )}
 
-      <Row label="Blended array">
-        <span className="seg sm">
-          {[1, 2, 3, 4, 5].map((n) => (
-            <button
-              key={n}
-              className={s.projArrayCount === n ? 'on' : ''}
-              onClick={() => s.set('projArrayCount', n)}
-            >
-              {n === 1 ? 'Off' : `${n}×`}
-            </button>
-          ))}
-        </span>
-      </Row>
+      {parametric && (
+        <>
+          <Row label="Blended array" title="Array layout is computed from projector count and overlap — switch to Freeform to place each unit by hand.">
+            <span className="seg sm">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  className={s.projArrayCount === n ? 'on' : ''}
+                  onClick={() => s.set('projArrayCount', n)}
+                >
+                  {n === 1 ? 'Off' : `${n}×`}
+                </button>
+              ))}
+            </span>
+          </Row>
 
-      {s.projArrayCount > 1 && (
-        <div
-          className="field"
-          title={`Projectors side by side, each overlapping its neighbour. Total width = ${s.projArrayCount}× one image minus the overlaps; the seams run ~2× bright until an edge-blend curve tapers them.`}
-        >
-          <div className="field-head">
-            <span className="row-label">Overlap</span>
-            <span className="num-readout">{s.projArrayOverlapPct}%</span>
-          </div>
-          <input
-            className="slider"
-            type="range"
-            min={0}
-            max={50}
-            step={1}
-            value={s.projArrayOverlapPct}
-            onChange={(e) => s.set('projArrayOverlapPct', Number(e.target.value))}
-          />
-        </div>
+          {s.projArrayCount > 1 && (
+            <div
+              className="field"
+              title={`Projectors side by side, each overlapping its neighbour. Total width = ${s.projArrayCount}× one image minus the overlaps; the seams run ~2× bright until an edge-blend curve tapers them.`}
+            >
+              <div className="field-head">
+                <span className="row-label">Overlap</span>
+                <span className="num-readout">{s.projArrayOverlapPct}%</span>
+              </div>
+              <input
+                className="slider"
+                type="range"
+                min={0}
+                max={50}
+                step={1}
+                value={s.projArrayOverlapPct}
+                onChange={(e) => s.set('projArrayOverlapPct', Number(e.target.value))}
+              />
+            </div>
+          )}
+        </>
       )}
 
       <Row label="Aspect">
@@ -330,110 +359,114 @@ export function ProjectionControls() {
 
     <Card title="Geometry">
 
-      <Row
-        label="Drive by"
-        title="Throw ratio links width and distance — pin one, the other follows."
-      >
-        <span className="seg sm">
-          <button
-            className={pinDistance ? 'on' : ''}
-            onClick={() => s.set('projPin', 'distance')}
+      {parametric && (
+        <>
+          <Row
+            label="Drive by"
+            title="Throw ratio links width and distance — pin one, the other follows."
           >
-            Distance
-          </button>
-          <button
-            className={!pinDistance ? 'on' : ''}
-            onClick={() => s.set('projPin', 'width')}
-          >
-            Width
-          </button>
-        </span>
-      </Row>
+            <span className="seg sm">
+              <button
+                className={pinDistance ? 'on' : ''}
+                onClick={() => s.set('projPin', 'distance')}
+              >
+                Distance
+              </button>
+              <button
+                className={!pinDistance ? 'on' : ''}
+                onClick={() => s.set('projPin', 'width')}
+              >
+                Width
+              </button>
+            </span>
+          </Row>
 
-      {pinDistance ? (
-        <>
+          {pinDistance ? (
+            <>
+              <div className="field">
+                <div className="field-head">
+                  <span className="row-label">Throw distance</span>
+                  <span className="num-entry">
+                    <input
+                      type="number"
+                      step={0.1}
+                      min={0}
+                      value={bigVal(s.projDistance)}
+                      onChange={(e) => setDistance(bigToIn(Number(e.target.value)))}
+                    />
+                    <span className="unit">{bigUnit}</span>
+                  </span>
+                </div>
+                <input
+                  className="slider"
+                  type="range"
+                  min={distMin}
+                  max={distMax}
+                  step={step}
+                  value={distVal}
+                  onChange={(e) => setDistance(toInches(Number(e.target.value), units))}
+                />
+              </div>
+              <Row label="Image width">
+                <span className="num-readout">{fmtDist(s.projWidth, units)}</span>
+              </Row>
+            </>
+          ) : (
+            <>
+              <div className="field">
+                <div className="field-head">
+                  <span className="row-label">Image width</span>
+                  <span className="num-entry">
+                    <input
+                      type="number"
+                      step={0.1}
+                      min={0}
+                      value={bigVal(s.projWidth)}
+                      onChange={(e) => setWidth(bigToIn(Number(e.target.value)))}
+                    />
+                    <span className="unit">{bigUnit}</span>
+                  </span>
+                </div>
+                <input
+                  className="slider"
+                  type="range"
+                  min={widthMin}
+                  max={widthMax}
+                  step={step}
+                  value={widthVal}
+                  onChange={(e) => setWidth(toInches(Number(e.target.value), units))}
+                />
+              </div>
+              <Row label="Throw distance">
+                <span className="num-readout">{fmtDist(s.projDistance, units)}</span>
+              </Row>
+            </>
+          )}
+
           <div className="field">
             <div className="field-head">
-              <span className="row-label">Throw distance</span>
-              <span className="num-entry">
-                <input
-                  type="number"
-                  step={0.1}
-                  min={0}
-                  value={bigVal(s.projDistance)}
-                  onChange={(e) => setDistance(bigToIn(Number(e.target.value)))}
-                />
-                <span className="unit">{bigUnit}</span>
-              </span>
+              <span className="row-label">Lens height</span>
+              <span className="num-readout">{fmtLen(s.projLensAff, units)}</span>
             </div>
             <input
               className="slider"
               type="range"
-              min={distMin}
-              max={distMax}
-              step={step}
-              value={distVal}
-              onChange={(e) => setDistance(toInches(Number(e.target.value), units))}
+              min={0}
+              max={metric ? 420 : 168}
+              step={metric ? 2 : 1}
+              value={round(fromInches(s.projLensAff, units))}
+              onChange={(e) => {
+                const aff = toInches(Number(e.target.value), units);
+                s.set('projLensAff', aff);
+                if (s.selectedProjectorId) {
+                  const p = s.projectors.find((x) => x.id === s.selectedProjectorId);
+                  if (p) s.updateProjector(p.id, { posIn: [p.posIn[0], aff, p.posIn[2]] });
+                }
+              }}
             />
           </div>
-          <Row label="Image width">
-            <span className="num-readout">{fmtDist(s.projWidth, units)}</span>
-          </Row>
-        </>
-      ) : (
-        <>
-          <div className="field">
-            <div className="field-head">
-              <span className="row-label">Image width</span>
-              <span className="num-entry">
-                <input
-                  type="number"
-                  step={0.1}
-                  min={0}
-                  value={bigVal(s.projWidth)}
-                  onChange={(e) => setWidth(bigToIn(Number(e.target.value)))}
-                />
-                <span className="unit">{bigUnit}</span>
-              </span>
-            </div>
-            <input
-              className="slider"
-              type="range"
-              min={widthMin}
-              max={widthMax}
-              step={step}
-              value={widthVal}
-              onChange={(e) => setWidth(toInches(Number(e.target.value), units))}
-            />
-          </div>
-          <Row label="Throw distance">
-            <span className="num-readout">{fmtDist(s.projDistance, units)}</span>
-          </Row>
         </>
       )}
-
-      <div className="field">
-        <div className="field-head">
-          <span className="row-label">Lens height</span>
-          <span className="num-readout">{fmtLen(s.projLensAff, units)}</span>
-        </div>
-        <input
-          className="slider"
-          type="range"
-          min={0}
-          max={metric ? 420 : 168}
-          step={metric ? 2 : 1}
-          value={round(fromInches(s.projLensAff, units))}
-          onChange={(e) => {
-            const aff = toInches(Number(e.target.value), units);
-            s.set('projLensAff', aff);
-            if (s.selectedProjectorId) {
-              const p = s.projectors.find((x) => x.id === s.selectedProjectorId);
-              if (p) s.updateProjector(p.id, { posIn: [p.posIn[0], aff, p.posIn[2]] });
-            }
-          }}
-        />
-      </div>
 
       <Row label="Lens origin">
         <span className="seg sm">
@@ -460,11 +493,15 @@ export function ProjectionControls() {
 
       <div
         className="field"
-        title="Optical shift — moves the image up (+) or down (−) with no keystone. 0% sits at the lens origin above."
+        title={
+          freeform
+            ? 'Optical shift — moves this projector\'s image up (+) or down (−) with no keystone. 0% sits at the lens origin above.'
+            : 'Optical shift — moves the image up (+) or down (−) with no keystone. 0% sits at the lens origin above.'
+        }
       >
         <div className="field-head">
           <span className="row-label">Vertical lens shift</span>
-          <span className="num-readout">{s.projLensShiftPct > 0 ? '+' : ''}{s.projLensShiftPct}%</span>
+          <span className="num-readout">{vertShiftVal > 0 ? '+' : ''}{vertShiftVal}%</span>
         </div>
         <input
           className="slider"
@@ -472,63 +509,91 @@ export function ProjectionControls() {
           min={-130}
           max={130}
           step={5}
-          value={s.projLensShiftPct}
+          value={vertShiftVal}
           onChange={(e) => {
             const val = Number(e.target.value);
-            s.set('projLensShiftPct', val);
+            // In Freeform, per-projector shift only — writing the global field
+            // here would recompute the nominal frustum and yank the camera to
+            // re-centre on it while the user is nudging one unit.
+            if (!freeform) s.set('projLensShiftPct', val);
             if (s.selectedProjectorId) s.updateProjector(s.selectedProjectorId, { lensShiftPct: val });
           }}
         />
       </div>
 
-      <div
-        className="field"
-        title="Physically tilting the projector — this is what bends the image into a keystone."
-      >
-        <div className="field-head">
-          <span className="row-label">Tilt</span>
-          <span className="num-readout">{s.projTiltDeg}°</span>
+      {freeform && sel && (
+        <div
+          className="field"
+          title="Optical shift — moves this projector's image left (−) or right (+) with no keystone. 0% is centred on the lens axis."
+        >
+          <div className="field-head">
+            <span className="row-label">Horizontal lens shift</span>
+            <span className="num-readout">{horizShiftVal > 0 ? '+' : ''}{horizShiftVal}%</span>
+          </div>
+          <input
+            className="slider"
+            type="range"
+            min={-130}
+            max={130}
+            step={5}
+            value={horizShiftVal}
+            onChange={(e) => s.updateProjector(sel.id, { lensShiftXPct: Number(e.target.value) })}
+          />
         </div>
-        <input
-          className="slider"
-          type="range"
-          min={-30}
-          max={30}
-          step={1}
-          value={s.projTiltDeg}
-          onChange={(e) => {
-            const val = Number(e.target.value);
-            s.set('projTiltDeg', val);
-            if (s.selectedProjectorId) {
-              const p = s.projectors.find((x) => x.id === s.selectedProjectorId);
-              if (p) s.updateProjector(p.id, { rotDeg: [val, p.rotDeg[1], p.rotDeg[2]] });
-            }
-          }}
-        />
-      </div>
+      )}
+
+      {parametric && (
+        <div
+          className="field"
+          title="Physically tilting the projector — this is what bends the image into a keystone."
+        >
+          <div className="field-head">
+            <span className="row-label">Tilt</span>
+            <span className="num-readout">{s.projTiltDeg}°</span>
+          </div>
+          <input
+            className="slider"
+            type="range"
+            min={-30}
+            max={30}
+            step={1}
+            value={s.projTiltDeg}
+            onChange={(e) => {
+              const val = Number(e.target.value);
+              s.set('projTiltDeg', val);
+              if (s.selectedProjectorId) {
+                const p = s.projectors.find((x) => x.id === s.selectedProjectorId);
+                if (p) s.updateProjector(p.id, { rotDeg: [val, p.rotDeg[1], p.rotDeg[2]] });
+              }
+            }}
+          />
+        </div>
+      )}
     </Card>
 
     <Card title="Focus">
 
-      <Row
-        label="Focus at throw distance"
-        title="One-click default: centre the acceptably-sharp band on the current throw distance, ±15%/+25% (near limits hold tighter than far limits on a real lens)."
-      >
-        <button
-          className="sm"
-          onClick={() => {
-            const near = s.projDistance * 0.85;
-            const far = s.projDistance * 1.25;
-            s.set('projFocusNearIn', near);
-            s.set('projFocusFarIn', far);
-            if (s.selectedProjectorId) {
-              s.updateProjector(s.selectedProjectorId, { focusNearIn: near, focusFarIn: far });
-            }
-          }}
+      {parametric && (
+        <Row
+          label="Focus at throw distance"
+          title="One-click default: centre the acceptably-sharp band on the current throw distance, ±15%/+25% (near limits hold tighter than far limits on a real lens)."
         >
-          Apply
-        </button>
-      </Row>
+          <button
+            className="sm"
+            onClick={() => {
+              const near = s.projDistance * 0.85;
+              const far = s.projDistance * 1.25;
+              s.set('projFocusNearIn', near);
+              s.set('projFocusFarIn', far);
+              if (s.selectedProjectorId) {
+                s.updateProjector(s.selectedProjectorId, { focusNearIn: near, focusFarIn: far });
+              }
+            }}
+          >
+            Apply
+          </button>
+        </Row>
+      )}
 
       <Row
         label="Near limit"

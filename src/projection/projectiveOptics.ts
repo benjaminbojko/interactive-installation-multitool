@@ -91,6 +91,7 @@ export interface ProjectorIntrinsics {
   aspectW: number;
   aspectH: number;
   lensShiftPct: number;
+  lensShiftXPct?: number;
   lensOrigin: LensOrigin;
   nearFt?: number;
   farFt?: number;
@@ -102,13 +103,14 @@ export function projectorProjectionMatrix(i: ProjectorIntrinsics): Mat4 {
   const tanY = tanX * aspect;
   const baseline = i.lensOrigin === 'top' ? -tanY : 0;
   const shiftY = (i.lensShiftPct / 100) * tanY + baseline;
+  const shiftX = ((i.lensShiftXPct ?? 0) / 100) * tanX;
   const n = i.nearFt ?? 0.5;
   const f = i.farFt ?? 500;
   const invD = 1 / (f - n);
   return [
     1 / tanX, 0, 0, 0,
     0, 1 / tanY, 0, 0,
-    0, shiftY / tanY, -(f + n) * invD, -1,
+    shiftX / tanX, shiftY / tanY, -(f + n) * invD, -1,
     0, 0, -2 * f * n * invD, 0,
   ];
 }
@@ -162,6 +164,7 @@ export interface ProjectorOpticsInstance {
   aspectW: number;
   aspectH: number;
   lensShiftPct: number;
+  lensShiftXPct: number;
   lensOrigin: LensOrigin;
   lumens: number;
   enabled: boolean;
@@ -183,6 +186,7 @@ export function buildProjectorSpecsFromInstances(
         aspectW: p.aspectW,
         aspectH: p.aspectH,
         lensShiftPct: p.lensShiftPct,
+        lensShiftXPct: p.lensShiftXPct,
         lensOrigin: p.lensOrigin,
       });
       const texture = multiplyMat4(biasMatrix(), multiplyMat4(proj, view));

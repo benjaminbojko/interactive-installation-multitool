@@ -19,6 +19,7 @@ export function ProjectorListCard() {
     round1(metric ? (val * 100) / 2.54 : val * 12);
 
   const sel = s.projectors.find((p) => p.id === s.selectedProjectorId) ?? s.projectors[0];
+  const freeform = s.projGeometryMode === 'freeform';
 
   function updateSel(partial: Partial<ProjectorInstance>) {
     if (sel) s.updateProjector(sel.id, partial);
@@ -54,13 +55,15 @@ export function ProjectorListCard() {
     >
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-        <button
-          className="sm"
-          onClick={() => s.arrangeProjectorsInArray(s.projectors.length, s.projArrayOverlapPct)}
-          title="Arrange active projectors in a uniform horizontal array"
-        >
-          Array
-        </button>
+        {!freeform && (
+          <button
+            className="sm"
+            onClick={() => s.arrangeProjectorsInArray(s.projectors.length, s.projArrayOverlapPct)}
+            title="Arrange active projectors in a uniform horizontal array"
+          >
+            Array
+          </button>
+        )}
         <button
           className="sm"
           disabled={!sel || s.projectors.length < 2}
@@ -121,46 +124,57 @@ export function ProjectorListCard() {
 
       {sel && (
         <>
-          <label
-            className="row"
-            title="Transform gizmo mode in 3D viewport (hold Ctrl to switch mode, hold Shift to snap 5cm/2in or 5°)"
+          {freeform && (
+            <>
+              <label
+                className="row"
+                title="Transform gizmo mode in 3D viewport (hold Ctrl to switch mode, hold Shift to snap 5cm/2in or 5°)"
+              >
+                <span className="row-label">Gizmo mode</span>
+                <span className="seg sm">
+                  <button
+                    className={activeMode === 'translate' ? 'on' : ''}
+                    onClick={() => s.set('transformGizmoMode', 'translate')}
+                  >
+                    Translate
+                  </button>
+                  <button
+                    className={activeMode === 'rotate' ? 'on' : ''}
+                    onClick={() => s.set('transformGizmoMode', 'rotate')}
+                  >
+                    Rotate
+                  </button>
+                </span>
+              </label>
+
+              <label className="row" title="Transform coordinate space">
+                <span className="row-label">Gizmo space</span>
+                <span className="seg sm">
+                  <button
+                    className={s.transformGizmoSpace === 'world' ? 'on' : ''}
+                    onClick={() => s.set('transformGizmoSpace', 'world')}
+                  >
+                    World
+                  </button>
+                  <button
+                    className={s.transformGizmoSpace === 'local' ? 'on' : ''}
+                    onClick={() => s.set('transformGizmoSpace', 'local')}
+                  >
+                    Local
+                  </button>
+                </span>
+              </label>
+            </>
+          )}
+
+          <div
+            className="field"
+            title={
+              freeform
+                ? 'Projector position in 3D space [X lateral, Y height AFF, Z throw distance]'
+                : 'Computed from throw distance, lens height, and array layout — switch to Freeform to edit directly'
+            }
           >
-            <span className="row-label">Gizmo mode</span>
-            <span className="seg sm">
-              <button
-                className={activeMode === 'translate' ? 'on' : ''}
-                onClick={() => s.set('transformGizmoMode', 'translate')}
-              >
-                Translate
-              </button>
-              <button
-                className={activeMode === 'rotate' ? 'on' : ''}
-                onClick={() => s.set('transformGizmoMode', 'rotate')}
-              >
-                Rotate
-              </button>
-            </span>
-          </label>
-
-          <label className="row" title="Transform coordinate space">
-            <span className="row-label">Gizmo space</span>
-            <span className="seg sm">
-              <button
-                className={s.transformGizmoSpace === 'world' ? 'on' : ''}
-                onClick={() => s.set('transformGizmoSpace', 'world')}
-              >
-                World
-              </button>
-              <button
-                className={s.transformGizmoSpace === 'local' ? 'on' : ''}
-                onClick={() => s.set('transformGizmoSpace', 'local')}
-              >
-                Local
-              </button>
-            </span>
-          </label>
-
-          <div className="field" title="Projector position in 3D space [X lateral, Y height AFF, Z throw distance]">
             <div className="field-head">
               <span className="row-label">Position ({unit})</span>
             </div>
@@ -170,6 +184,7 @@ export function ProjectorListCard() {
                 <input
                   type="number"
                   step={0.1}
+                  disabled={!freeform}
                   value={toDisplay(sel.posIn[0])}
                   onChange={(e) => handlePosChange(0, Number(e.target.value))}
                 />
@@ -179,6 +194,7 @@ export function ProjectorListCard() {
                 <input
                   type="number"
                   step={0.1}
+                  disabled={!freeform}
                   value={toDisplay(sel.posIn[1])}
                   onChange={(e) => handlePosChange(1, Number(e.target.value))}
                 />
@@ -188,6 +204,7 @@ export function ProjectorListCard() {
                 <input
                   type="number"
                   step={0.1}
+                  disabled={!freeform}
                   value={toDisplay(sel.posIn[2])}
                   onChange={(e) => handlePosChange(2, Number(e.target.value))}
                 />
@@ -195,7 +212,14 @@ export function ProjectorListCard() {
             </div>
           </div>
 
-          <div className="field" title="Projector orientation Euler angles [Pitch, Yaw, Roll] in degrees">
+          <div
+            className="field"
+            title={
+              freeform
+                ? 'Projector orientation Euler angles [Pitch, Yaw, Roll] in degrees'
+                : 'Pitch is computed from Tilt — switch to Freeform to edit directly'
+            }
+          >
             <div className="field-head">
               <span className="row-label">Rotation (deg)</span>
             </div>
@@ -205,6 +229,7 @@ export function ProjectorListCard() {
                 <input
                   type="number"
                   step={1}
+                  disabled={!freeform}
                   value={round1(sel.rotDeg[0])}
                   onChange={(e) => handleRotChange(0, Number(e.target.value))}
                 />

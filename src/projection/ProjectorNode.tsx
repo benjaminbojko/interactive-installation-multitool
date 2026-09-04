@@ -11,6 +11,7 @@ interface ProjectorNodeProps {
   bandColor: string;
   gizmoMode: TransformGizmoMode;
   gizmoSpace: TransformGizmoSpace;
+  gizmoEnabled: boolean;
   isMetric: boolean;
   onSelect: () => void;
   onTransformEnd: (posIn: [number, number, number], rotDeg: [number, number, number]) => void;
@@ -23,6 +24,7 @@ export function ProjectorNode({
   bandColor,
   gizmoMode,
   gizmoSpace,
+  gizmoEnabled,
   isMetric,
   onSelect,
   onTransformEnd,
@@ -99,6 +101,7 @@ export function ProjectorNode({
             aspectW: projector.aspectW,
             aspectH: projector.aspectH,
             lensShiftPct: projector.lensShiftPct,
+            lensShiftXPct: projector.lensShiftXPct,
             lensOrigin: projector.lensOrigin,
             distanceFt: projector.posIn[2] / 12,
           }}
@@ -107,7 +110,7 @@ export function ProjectorNode({
           onSelect={onSelect}
         />
       </group>
-      {isSelected && target && (
+      {isSelected && target && gizmoEnabled && (
         <TransformControls
           object={target}
           mode={activeMode}

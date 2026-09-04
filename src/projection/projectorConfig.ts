@@ -2,6 +2,10 @@ import type { LensOrigin } from './projectionMath';
 
 export type TransformGizmoMode = 'translate' | 'rotate';
 export type TransformGizmoSpace = 'world' | 'local';
+// 'parametric': position/rotation come from throw distance, lens height, tilt,
+// and array layout math. 'freeform': the 3D gizmo and manual fields own the
+// transform directly — the parametric fields stop writing to it.
+export type ProjGeometryMode = 'parametric' | 'freeform';
 
 export interface ProjectorInstance {
   id: string;
@@ -18,6 +22,7 @@ export interface ProjectorInstance {
   resW: number;
   resH: number;
   lensShiftPct: number;
+  lensShiftXPct: number; // horizontal shift, % of half image width; +right/−left (Freeform only)
   lensOrigin: LensOrigin;
   // Near/far limits (INCHES, absolute distances from the lens) the image
   // stays acceptably sharp within. Peak sharpness is their midpoint — no
@@ -37,6 +42,7 @@ export const PROJECTOR_SHARED_KEYS = [
   'resW',
   'resH',
   'lensShiftPct',
+  'lensShiftXPct',
   'lensOrigin',
   'focusNearIn',
   'focusFarIn',
@@ -60,6 +66,7 @@ export function createDefaultProjector(
     resW: 1920,
     resH: 1080,
     lensShiftPct: 0,
+    lensShiftXPct: 0,
     lensOrigin: 'center',
     focusNearIn: posIn[2] * 0.85, // focused near the wall by default
     focusFarIn: posIn[2] * 1.25,

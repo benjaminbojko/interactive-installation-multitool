@@ -143,6 +143,9 @@ input[type=number], select {
   background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
   border-radius: 6px; padding: 6px 8px; width: 110px; font: inherit;
 }
+input[type=number]:disabled, select:disabled {
+  opacity: 0.5; cursor: not-allowed;
+}
 .aspect { display: inline-flex; align-items: center; gap: 6px; }
 .aspect input { width: 48px; }
 

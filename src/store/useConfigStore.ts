@@ -9,6 +9,7 @@ import {
   type ProjectorInstance,
   type TransformGizmoMode,
   type TransformGizmoSpace,
+  type ProjGeometryMode,
   INITIAL_PROJECTORS,
   PROJECTOR_SHARED_KEYS,
   createDefaultProjector,
@@ -152,6 +153,7 @@ export interface ConfigState {
   selectedProjectorId: string | null;
   transformGizmoMode: TransformGizmoMode;
   transformGizmoSpace: TransformGizmoSpace;
+  projGeometryMode: ProjGeometryMode; // parametric layout math vs. freeform gizmo placement
 
   // --- sensor coverage (camera / depth sensor) ---
   sensorMount: SensorMount; // ceiling / wall / floor
@@ -326,6 +328,7 @@ export const INITIAL: ConfigData = {
   selectedProjectorId: 'proj-1',
   transformGizmoMode: 'translate',
   transformGizmoSpace: 'world',
+  projGeometryMode: 'parametric',
 
   // Azure Kinect (NFOV) on a 9 ft ceiling aimed straight down, skeletal tracking.
   sensorMount: 'ceiling',

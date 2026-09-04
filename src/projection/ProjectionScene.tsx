@@ -232,6 +232,7 @@ export function ProjectionScene() {
                 bandColor={bandColor}
                 gizmoMode={s.transformGizmoMode}
                 gizmoSpace={s.transformGizmoSpace}
+                gizmoEnabled={s.projGeometryMode === 'freeform'}
                 isMetric={units === 'metric'}
                 onSelect={() => s.selectProjector(p.id)}
                 onTransformEnd={(posIn, rotDeg) => s.updateProjector(p.id, { posIn, rotDeg })}
