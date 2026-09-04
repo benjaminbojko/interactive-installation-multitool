@@ -456,11 +456,21 @@ export const useConfigStore = create<ConfigState>()(
         updateProjector: (id, partial, throwDistanceInOverride) => {
           const s = get();
           set({
-            projectors: s.projectors.map((p) =>
-              p.id === id
-                ? withAutoFocus({ ...p, ...partial }, s.projFocusAuto, throwDistanceInOverride)
-                : p,
-            ),
+            projectors: s.projectors.map((p) => {
+              if (p.id !== id) return p;
+              const next = { ...p, ...partial };
+              // Ordinary edits (drag, typed fields) skip the recompute here
+              // when auto is on and no raycast override is given — otherwise
+              // withAutoFocus's Math.abs(posIn[2]) fallback bakes a
+              // rotation-blind estimate into this same update, flashing it
+              // for one frame until useProjectorFocusRaycast's next tick
+              // corrects it with the real one. Once that hook is live it's
+              // the sole source of truth for auto-focus; this fallback only
+              // matters before the first raycast (initial creation) or when
+              // auto is off (withAutoFocus no-ops either way).
+              if (s.projFocusAuto && throwDistanceInOverride === undefined) return next;
+              return withAutoFocus(next, s.projFocusAuto, throwDistanceInOverride);
+            }),
           });
         },
 
