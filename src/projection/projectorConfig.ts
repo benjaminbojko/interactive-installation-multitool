@@ -50,18 +50,32 @@ export const PROJECTOR_SHARED_KEYS = [
 ] as const satisfies readonly (keyof ProjectorInstance)[];
 
 // If auto is on, recomputes focusNearIn/focusFarIn from the projector's own
-// throwRatio/posIn[2]/resW; otherwise returns it unchanged. `auto` is a single
-// global setting (all projectors assumed to share the same lens/focal-range
-// behavior — see projFocusAuto in useConfigStore.ts), not per-instance. Single
-// source of truth for auto-focus, applied everywhere a projector's throw
-// ratio, distance, or resolution can change (updateProjector, array layout,
-// new-projector creation) so the toggle stays correct regardless of entry point.
-export function withAutoFocus(p: ProjectorInstance, auto: boolean): ProjectorInstance {
+// throwRatio/resW and a throw distance; otherwise returns it unchanged.
+// `auto` is a single global setting (all projectors assumed to share the
+// same lens/focal-range behavior — see projFocusAuto in useConfigStore.ts),
+// not per-instance. Single source of truth for auto-focus, applied
+// everywhere a projector's throw ratio, distance, or resolution can change
+// (updateProjector, array layout, new-projector creation) so the toggle
+// stays correct regardless of entry point.
+//
+// `throwDistanceInOverride`, when given, is the real geometric distance from
+// the lens to whatever the projector is actually aimed at — computed by
+// raycasting against the live canvas mesh (see useProjectorFocusRaycast.ts),
+// which is the only thing that stays correct once the projector is rotated
+// or aimed at a non-planar surface. Falls back to posIn[2] (correct only for
+// an unrotated projector facing a flat surface at z=0) when no raycast hit is
+// available yet — e.g. before the canvas mesh has mounted/loaded.
+export function withAutoFocus(
+  p: ProjectorInstance,
+  auto: boolean,
+  throwDistanceInOverride?: number,
+): ProjectorInstance {
   if (!auto) return p;
   // posIn[2]'s sign reflects which side of the origin the projector sits on
   // (e.g. a freeform unit placed behind the scene and yawed 180° to face back
   // in), not whether the throw distance is valid — take the magnitude.
-  const focus = depthOfFocusIn(p.throwRatio, Math.abs(p.posIn[2]), p.resW);
+  const throwDistanceIn = throwDistanceInOverride ?? Math.abs(p.posIn[2]);
+  const focus = depthOfFocusIn(p.throwRatio, throwDistanceIn, p.resW);
   return { ...p, focusNearIn: focus.nearIn, focusFarIn: focus.farIn };
 }
 

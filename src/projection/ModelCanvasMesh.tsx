@@ -19,6 +19,9 @@ interface ModelCanvasMeshProps {
   mat: THREE.ShaderMaterial;
   shadowPass: ProjectorShadowPass;
   specs: ProjectorSpec[];
+  // Exposes the model's root group to the caller so it can raycast projector
+  // aim against the actual loaded geometry (see useProjectorFocusRaycast).
+  targetRef?: React.RefObject<THREE.Object3D | null>;
 }
 
 interface ModelRendererProps extends ModelCanvasMeshProps {
@@ -30,6 +33,7 @@ function ModelRenderer({
   mat,
   shadowPass,
   specs,
+  targetRef,
 }: ModelRendererProps) {
   const modelScale = useConfigStore((s) => s.projModelScale);
   const modelOffset = useConfigStore((s) => s.projModelOffset);
@@ -71,7 +75,10 @@ function ModelRenderer({
 
   return (
     <group
-      ref={groupRef}
+      ref={(el) => {
+        groupRef.current = el;
+        if (targetRef) targetRef.current = el;
+      }}
       position={[ftFromIn(modelOffset[0]), ftFromIn(modelOffset[1]), ftFromIn(modelOffset[2])]}
       rotation={[
         (modelRot[0] * Math.PI) / 180,

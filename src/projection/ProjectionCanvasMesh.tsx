@@ -14,6 +14,7 @@ import {
 } from './projectiveMaterial';
 import { ProjectorShadowPass, MAX_PROJECTORS } from './ProjectorShadowPass';
 import { ModelCanvasMesh } from './ModelCanvasMesh';
+import { useProjectorFocusRaycast } from './useProjectorFocusRaycast';
 
 export type CanvasType = 'wall' | 'curved' | 'cylinder' | 'model';
 
@@ -133,6 +134,11 @@ export function ProjectionCanvasMesh({
   const invalidate = useThree((s) => s.invalidate);
 
   const meshRef = useRef<THREE.Mesh>(null);
+  const modelTargetRef = useRef<THREE.Object3D>(null);
+  // Raycasts each projector's aim against whichever mesh is actually
+  // standing in as the canvas, so auto-focus tracks rotation and (for the
+  // 'model' case) arbitrary non-planar geometry — see useProjectorFocusRaycast.
+  useProjectorFocusRaycast(canvasType === 'model' ? modelTargetRef : meshRef);
   const mat = useMemo(() => createProjectiveMaterial(), []);
   const heatRampTex = useMemo(() => makeHeatmapRampTexture(), []);
   const shadowPass = useMemo(() => new ProjectorShadowPass(), []);
@@ -237,6 +243,7 @@ export function ProjectionCanvasMesh({
         mat={mat}
         shadowPass={shadowPass}
         specs={specs}
+        targetRef={modelTargetRef}
       />
     );
   }

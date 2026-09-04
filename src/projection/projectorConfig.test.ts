@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createDefaultProjector, withAutoFocus, type ProjectorInstance } from './projectorConfig';
+import { depthOfFocusIn } from './focusOptics';
 
 describe('withAutoFocus', () => {
   it('recomputes a non-zero band for a projector placed behind the origin and yawed to face back', () => {
@@ -28,6 +29,32 @@ describe('withAutoFocus', () => {
       focusFarIn: 99,
     };
     const out = withAutoFocus(p, false);
+    expect(out.focusNearIn).toBe(42);
+    expect(out.focusFarIn).toBe(99);
+  });
+
+  it('uses a raycast-derived throwDistanceInOverride instead of posIn[2] when given', () => {
+    // A projector rotated to aim at a surface much closer than its raw Z
+    // position — e.g. tilted down at a nearby floor instead of the far wall
+    // implied by posIn[2]. Without the override, the band would be computed
+    // for the wrong (much longer) distance.
+    const p = createDefaultProjector('proj-rotated', 'Rotated', [0, 90, 360]);
+    const viaPosIn = withAutoFocus(p, true);
+    const viaOverride = withAutoFocus(p, true, 60);
+
+    const expected = depthOfFocusIn(p.throwRatio, 60, p.resW);
+    expect(viaOverride.focusNearIn).toBeCloseTo(expected.nearIn, 6);
+    expect(viaOverride.focusFarIn).toBeCloseTo(expected.farIn, 6);
+    expect(viaOverride.focusNearIn).not.toBeCloseTo(viaPosIn.focusNearIn, 1);
+  });
+
+  it('ignores the override when auto is off', () => {
+    const p: ProjectorInstance = {
+      ...createDefaultProjector('proj-manual-2', 'Manual 2', [0, 90, 180]),
+      focusNearIn: 42,
+      focusFarIn: 99,
+    };
+    const out = withAutoFocus(p, false, 12);
     expect(out.focusNearIn).toBe(42);
     expect(out.focusFarIn).toBe(99);
   });

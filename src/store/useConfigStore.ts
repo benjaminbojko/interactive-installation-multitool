@@ -199,7 +199,11 @@ export interface ConfigState {
   getLegibility: () => LegibilityReport;
   addProjector: (preset?: Partial<ProjectorInstance>) => string;
   removeProjector: (id: string) => void;
-  updateProjector: (id: string, partial: Partial<ProjectorInstance>) => void;
+  updateProjector: (
+    id: string,
+    partial: Partial<ProjectorInstance>,
+    throwDistanceInOverride?: number,
+  ) => void;
   selectProjector: (id: string | null) => void;
   arrangeProjectorsInArray: (count: number, overlapPct: number) => void;
   applyProjectorToAll: (id: string) => void;
@@ -449,11 +453,13 @@ export const useConfigStore = create<ConfigState>()(
           });
         },
 
-        updateProjector: (id, partial) => {
+        updateProjector: (id, partial, throwDistanceInOverride) => {
           const s = get();
           set({
             projectors: s.projectors.map((p) =>
-              p.id === id ? withAutoFocus({ ...p, ...partial }, s.projFocusAuto) : p,
+              p.id === id
+                ? withAutoFocus({ ...p, ...partial }, s.projFocusAuto, throwDistanceInOverride)
+                : p,
             ),
           });
         },
