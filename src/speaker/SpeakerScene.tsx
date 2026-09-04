@@ -1,5 +1,6 @@
 import { Canvas } from '@react-three/fiber';
 import { Billboard, Grid, Line, OrbitControls, PerspectiveCamera, Text } from '@react-three/drei';
+import { CaptureRegistrar } from '../scene/CaptureRegistrar';
 import { useMemo } from 'react';
 import { useConfigStore } from '../store/useConfigStore';
 import { useFrameloop } from '../scene/useFrameloop';
@@ -169,8 +170,10 @@ export function SpeakerScene() {
         <Canvas
           dpr={[1, 2]}
           frameloop={frameloop}
+          gl={{ preserveDrawingBuffer: true }}
           style={{ background: 'linear-gradient(180deg,#dfe4ea 0%,#bcc4ce 55%,#9ca5b0 100%)' }}
         >
+          <CaptureRegistrar />
           <PerspectiveCamera makeDefault fov={45} position={[camX, camY, camZ]} />
           <OrbitControls target={target} maxPolarAngle={Math.PI / 2} />
           <Lights />

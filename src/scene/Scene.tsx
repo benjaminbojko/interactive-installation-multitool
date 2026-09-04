@@ -1,5 +1,6 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Grid, OrbitControls, PerspectiveCamera } from '@react-three/drei';
+import { CaptureRegistrar } from './CaptureRegistrar';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { PERSONAS } from '../ergonomics/constants';
@@ -217,10 +218,12 @@ export function Scene() {
       shadows
       dpr={[1, 2]}
       frameloop={frameloop}
+      gl={{ preserveDrawingBuffer: true }}
       style={{
         background: 'linear-gradient(180deg,#dfe4ea 0%,#bcc4ce 55%,#9ca5b0 100%)',
       }}
     >
+      <CaptureRegistrar />
       <CameraRig />
       <Lights />
       <Floor />

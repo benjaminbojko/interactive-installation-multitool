@@ -1,5 +1,6 @@
 import { Canvas } from '@react-three/fiber';
 import { Grid, OrbitControls, PerspectiveCamera, useGLTF } from '@react-three/drei';
+import { CaptureRegistrar } from '../scene/CaptureRegistrar';
 import { Component, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
 import * as THREE from 'three';
 import { clone as skeletonClone } from 'three/examples/jsm/utils/SkeletonUtils.js';
@@ -292,8 +293,10 @@ export function TableScene() {
       shadows
       dpr={[1, 2]}
       frameloop={frameloop}
+      gl={{ preserveDrawingBuffer: true }}
       style={{ background: 'linear-gradient(180deg,#dfe4ea 0%,#bcc4ce 55%,#9ca5b0 100%)' }}
     >
+      <CaptureRegistrar />
       <CameraRig widthFt={widthFt} depthFt={depthFt + 2 * bezelFt} topY={topY} />
       <Lights />
       <Floor />

@@ -7,6 +7,7 @@ import { ResetModal } from './ui/ResetModal';
 import { ControlPanel } from './ui/ControlPanel';
 import { HelpPanel } from './ui/HelpPanel';
 import { SaveMenu } from './ui/SaveMenu';
+import { ScreenshotButton } from './ui/ScreenshotButton';
 import { UnitToggle } from './ui/UnitToggle';
 import { VerdictPanel } from './ui/VerdictPanel';
 import { LegibilityControls } from './typography/LegibilityControls';
@@ -119,6 +120,7 @@ export default function App() {
             </button>
           )}
           <UnitToggle />
+          <ScreenshotButton />
           <SaveMenu />
           <button
             className="reset-btn"

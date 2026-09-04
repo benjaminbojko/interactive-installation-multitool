@@ -1,5 +1,6 @@
 import { Canvas } from '@react-three/fiber';
 import { Grid, Line, OrbitControls, PerspectiveCamera, Text } from '@react-three/drei';
+import { CaptureRegistrar } from '../scene/CaptureRegistrar';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useConfigStore } from '../store/useConfigStore';
@@ -224,11 +225,13 @@ export function ProjectionScene() {
         <Canvas
           dpr={[1, 2]}
           frameloop={frameloop}
+          gl={{ preserveDrawingBuffer: true }}
           onPointerMissed={() => s.selectProjector(null)}
           style={{
             background: 'linear-gradient(180deg,#dfe4ea 0%,#bcc4ce 55%,#9ca5b0 100%)',
           }}
         >
+          <CaptureRegistrar />
           <PerspectiveCamera makeDefault fov={45} position={[camX, camY, camZ]} />
           <OrbitControls
             ref={orbitRef}
