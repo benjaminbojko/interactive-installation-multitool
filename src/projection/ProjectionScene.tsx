@@ -6,6 +6,7 @@ import { useConfigStore } from '../store/useConfigStore';
 import { fmtDist } from '../ui/units';
 import { f } from '../scene/scale';
 import { makeWallGrid } from '../scene/wallGrid';
+import { useFrameloop } from '../scene/useFrameloop';
 import { ProjectionFigure } from './ProjectionFigure';
 import { ProjectorNode } from './ProjectorNode';
 import { ProjectionCanvasMesh } from './ProjectionCanvasMesh';
@@ -85,6 +86,7 @@ export function ProjectionScene() {
   const s = useConfigStore();
   const units = s.units;
   const orbitRef = useRef<any>(null);
+  const frameloop = useFrameloop();
 
   const metrics = useMemo(
     () =>
@@ -191,6 +193,7 @@ export function ProjectionScene() {
       <div className="proj-frame">
         <Canvas
           dpr={[1, 2]}
+          frameloop={frameloop}
           onPointerMissed={() => s.selectProjector(null)}
           style={{
             background: 'linear-gradient(180deg,#dfe4ea 0%,#bcc4ce 55%,#9ca5b0 100%)',

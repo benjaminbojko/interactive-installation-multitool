@@ -10,6 +10,7 @@ import { MARBLE, MODELS, type ModelCfg } from '../scene/GltfAvatar';
 import { f } from '../scene/scale';
 import { makeTestPattern } from '../scene/testPattern';
 import { useConfigStore } from '../store/useConfigStore';
+import { useFrameloop } from '../scene/useFrameloop';
 import { makeReachHeatmap, seatReachOrigins } from './reachHeatmap';
 
 // The horizontal table 3D stage. The screen lies FACE-UP on a tabletop at the
@@ -284,11 +285,13 @@ export function TableScene() {
   const depthFt = f(size.height); // along z, reach-across
   const bezelFt = f(tableBezel);
   const topY = f(tableHeight);
+  const frameloop = useFrameloop();
 
   return (
     <Canvas
       shadows
       dpr={[1, 2]}
+      frameloop={frameloop}
       style={{ background: 'linear-gradient(180deg,#dfe4ea 0%,#bcc4ce 55%,#9ca5b0 100%)' }}
     >
       <CameraRig widthFt={widthFt} depthFt={depthFt + 2 * bezelFt} topY={topY} />

@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber';
 import { Billboard, Grid, Line, OrbitControls, PerspectiveCamera, Text } from '@react-three/drei';
 import { useMemo } from 'react';
 import { PERSONAS } from '../ergonomics/constants';
+import { useFrameloop } from '../scene/useFrameloop';
 import { useConfigStore } from '../store/useConfigStore';
 import { fmtDist } from '../ui/units';
 import { SensorAvatar } from './SensorAvatar';
@@ -149,10 +150,13 @@ export function SensorScene() {
   const fmtArea = (sqft: number) =>
     units === 'metric' ? `${(sqft * 0.092903).toFixed(1)} m²` : `${Math.round(sqft)} ft²`;
 
+  const frameloop = useFrameloop();
+
   return (
     <div className="proj-stage">
       <div className="proj-frame">
         <Canvas
+          frameloop={frameloop}
           dpr={[1, 2]}
           style={{
             background: 'linear-gradient(180deg,#dfe4ea 0%,#bcc4ce 55%,#9ca5b0 100%)',

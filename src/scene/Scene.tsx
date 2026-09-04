@@ -13,6 +13,7 @@ import { ReachBandOverlay } from './ReachBandOverlay';
 import { ScreenMesh } from './ScreenMesh';
 import { f } from './scale';
 import { makeWallGrid } from './wallGrid';
+import { useFrameloop } from './useFrameloop';
 
 const WALL_HEIGHT = 14; // ft, sits on the floor (0 → 14)
 
@@ -88,7 +89,7 @@ function Wall({ width }: { width: number }) {
 function CameraRig() {
   const { cameraView, personaId, mode, viewingDistance, diagonal, aspectW, aspectH, mountBottom, tiltDeg, fpFov } =
     useConfigStore();
-  const gl = useThree((s) => s.gl);
+  const { gl, invalidate } = useThree((s) => ({ gl: s.gl, invalidate: s.invalidate }));
   const persona = PERSONAS[personaId];
   const size = sizeFromDiagonal(diagonal, aspectW, aspectH);
   const distance = mode === 'touch' ? persona.touchDistance : viewingDistance;
@@ -124,6 +125,7 @@ function CameraRig() {
     _lookMat.lookAt(_eye, _center, WORLD_UP);
     baseQuat.current.setFromRotationMatrix(_lookMat);
     cam.updateProjectionMatrix();
+    invalidate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cameraView, L.eye[1], L.eye[2], center[1], center[2]]);
 
@@ -131,7 +133,8 @@ function CameraRig() {
   useEffect(() => {
     yaw.current = 0;
     pitch.current = 0;
-  }, [cameraView, personaId]);
+    invalidate();
+  }, [cameraView, personaId, invalidate]);
 
   // Drag to look around. Listen on the canvas element directly so r3f's own
   // raycasting (screen/avatar meshes) is left untouched.
@@ -150,6 +153,7 @@ function CameraRig() {
       last.current = { x: e.clientX, y: e.clientY };
       yaw.current = THREE.MathUtils.clamp(yaw.current - dx * LOOK_SENS, -YAW_LIMIT, YAW_LIMIT);
       pitch.current = THREE.MathUtils.clamp(pitch.current - dy * LOOK_SENS, -PITCH_LIMIT, PITCH_LIMIT);
+      invalidate();
     };
     const onUp = (e: PointerEvent) => {
       dragging.current = false;
@@ -206,11 +210,13 @@ function CameraRig() {
 export function Scene() {
   const { diagonal, aspectW, aspectH } = useConfigStore();
   const size = sizeFromDiagonal(diagonal, aspectW, aspectH);
+  const frameloop = useFrameloop();
 
   return (
     <Canvas
       shadows
       dpr={[1, 2]}
+      frameloop={frameloop}
       style={{
         background: 'linear-gradient(180deg,#dfe4ea 0%,#bcc4ce 55%,#9ca5b0 100%)',
       }}
