@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { TransformControls } from '@react-three/drei';
 import { ProjectionFrustum } from './ProjectionFrustum';
@@ -30,6 +30,7 @@ export function ProjectorNode({
 }: ProjectorNodeProps) {
   const [target, setTarget] = useState<THREE.Group | null>(null);
   const { activeMode, translationSnap, rotationSnap } = useGizmoShortcuts(isMetric, gizmoMode);
+  const draggingRef = useRef(false);
 
   const posFt: [number, number, number] = [
     projector.posIn[0] / 12,
@@ -43,31 +44,50 @@ export function ProjectorNode({
   ];
 
   useEffect(() => {
-    if (!target) return;
+    // Skip while a gizmo drag is live — the object's transform is being driven
+    // by the drag itself, and re-snapping it from the store here would fight
+    // TransformControls' own pointer tracking.
+    if (!target || draggingRef.current) return;
     target.position.set(...posFt);
     target.rotation.set(...rotRad);
   }, [target, posFt[0], posFt[1], posFt[2], rotRad[0], rotRad[1], rotRad[2]]);
 
+  function readTransform(t: THREE.Group): {
+    posIn: [number, number, number];
+    rotDeg: [number, number, number];
+  } {
+    const toDeg = 180 / Math.PI;
+    return {
+      posIn: [
+        Math.round(t.position.x * 12 * 10) / 10,
+        Math.round(t.position.y * 12 * 10) / 10,
+        Math.round(t.position.z * 12 * 10) / 10,
+      ],
+      rotDeg: [
+        Math.round(t.rotation.x * toDeg * 10) / 10,
+        Math.round(t.rotation.y * toDeg * 10) / 10,
+        Math.round(t.rotation.z * toDeg * 10) / 10,
+      ],
+    };
+  }
+
   function handleMouseDown() {
+    draggingRef.current = true;
     if (orbitRef.current) orbitRef.current.enabled = false;
   }
 
+  function handleObjectChange() {
+    if (!target || !draggingRef.current) return;
+    const { posIn, rotDeg } = readTransform(target);
+    onTransformEnd(posIn, rotDeg);
+  }
+
   function handleMouseUp() {
+    draggingRef.current = false;
     if (orbitRef.current) orbitRef.current.enabled = true;
     if (!target) return;
-    const toDeg = 180 / Math.PI;
-    onTransformEnd(
-      [
-        Math.round(target.position.x * 12 * 10) / 10,
-        Math.round(target.position.y * 12 * 10) / 10,
-        Math.round(target.position.z * 12 * 10) / 10,
-      ],
-      [
-        Math.round(target.rotation.x * toDeg * 10) / 10,
-        Math.round(target.rotation.y * toDeg * 10) / 10,
-        Math.round(target.rotation.z * toDeg * 10) / 10,
-      ],
-    );
+    const { posIn, rotDeg } = readTransform(target);
+    onTransformEnd(posIn, rotDeg);
   }
 
   return (
@@ -96,6 +116,7 @@ export function ProjectorNode({
           translationSnap={translationSnap}
           rotationSnap={rotationSnap}
           onMouseDown={handleMouseDown}
+          onObjectChange={handleObjectChange}
           onMouseUp={handleMouseUp}
         />
       )}
