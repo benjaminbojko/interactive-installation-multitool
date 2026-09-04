@@ -109,10 +109,13 @@ function ModelActions({ url, onOpen, onSample, onClear }: {
   url: string | null; onOpen: () => void; onSample: () => void; onClear: () => void;
 }) {
   return (
-    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
-      <button className="ghost" onClick={onOpen}>Open...</button>
-      {!url && <button className="ghost" onClick={onSample}>Sample Model</button>}
-      {url && <button className="ghost" onClick={onClear}>Clear</button>}
+    <div className="model-actions">
+      <button className="ghost btn-open" onClick={onOpen}>Open...</button>
+      {!url ? (
+        <button className="ghost btn-aux" onClick={onSample}>Sample</button>
+      ) : (
+        <button className="ghost btn-aux" onClick={onClear}>Clear</button>
+      )}
     </div>
   );
 }

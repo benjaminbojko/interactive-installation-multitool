@@ -62,13 +62,18 @@ body {
 .layout { display: grid; grid-template-columns: 340px 1fr; flex: 1; min-height: 0; }
 .sidebar {
   overflow-y: auto; border-right: 1px solid var(--line);
-  padding: 14px; display: flex; flex-direction: column; gap: 14px; background: var(--bg);
+  padding: 14px 14px 20px 14px; display: flex; flex-direction: column; gap: 14px; background: var(--bg);
+  min-height: 0;
+}
+.sidebar > * {
+  flex-shrink: 0;
 }
 .stage { position: relative; min-width: 0; }
 
 .panel {
   background: var(--panel); border: 1px solid var(--line);
   border-radius: 10px; padding: 14px;
+  flex-shrink: 0;
 }
 .panel h2 {
   font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
@@ -79,6 +84,10 @@ body {
 /* ---- Collapsible Cards ---- */
 .panel.card {
   padding: 0;
+  overflow: visible;
+  flex-shrink: 0;
+}
+.panel.card.closed {
   overflow: hidden;
 }
 .card-head {
@@ -91,6 +100,10 @@ body {
   user-select: none;
   background: transparent;
   transition: background 0.15s ease;
+  border-radius: 9px 9px 0 0;
+}
+.panel.card.closed .card-head {
+  border-radius: 9px;
 }
 .card-head:hover {
   background: var(--panel-2);
@@ -173,6 +186,11 @@ input[type=number], select {
 .transform-row .slider { flex: 1; margin: 0; }
 .axis-label { font-size: 11px; font-weight: 700; color: var(--muted); width: 12px; text-align: center; flex: 0 0 12px; }
 .axis-val { font-size: 11px; font-variant-numeric: tabular-nums; color: var(--text); width: 44px; text-align: right; flex: 0 0 44px; }
+
+.model-actions { display: flex; gap: 8px; margin: 6px 0 8px; }
+.model-actions button.ghost { width: auto; margin-top: 0; }
+.model-actions .btn-open { flex: 1; text-align: center; }
+.model-actions .btn-aux { flex: 0 0 auto; white-space: nowrap; }
 
 .persona-group { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
 .persona-group button { text-align: left; }
