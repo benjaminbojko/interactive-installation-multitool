@@ -104,7 +104,7 @@ export function validateAndApply(raw: unknown): Partial<ConfigData> {
       if (val === null || typeof val === 'string') out[key] = val;
       continue;
     }
-    if (key === 'projModelOffset') {
+    if (key === 'projModelOffset' || key === 'projModelRot') {
       if (
         Array.isArray(val) &&
         val.length === 3 &&

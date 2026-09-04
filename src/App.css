@@ -165,6 +165,15 @@ input[type=number], select {
 .num-sm { width: 80px; }
 .slider { width: 100%; margin-top: 8px; accent-color: var(--accent); }
 
+/* Compact transform groups (e.g. 3D model transforms) */
+.transform-group { margin: 8px 0 4px; }
+.transform-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
+.transform-rows { display: flex; flex-direction: column; gap: 3px; }
+.transform-row { display: flex; align-items: center; gap: 8px; }
+.transform-row .slider { flex: 1; margin: 0; }
+.axis-label { font-size: 11px; font-weight: 700; color: var(--muted); width: 12px; text-align: center; flex: 0 0 12px; }
+.axis-val { font-size: 11px; font-variant-numeric: tabular-nums; color: var(--text); width: 44px; text-align: right; flex: 0 0 44px; }
+
 .persona-group { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
 .persona-group button { text-align: left; }
 .persona-group button.on { background: var(--accent); color: #04121f; font-weight: 600; border-color: var(--accent); }

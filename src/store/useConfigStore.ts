@@ -136,6 +136,7 @@ export interface ConfigState {
   projModelUrl: string | null; // blob or asset URL for 3D model canvas
   projModelScale: number; // scale multiplier for 3D model
   projModelOffset: [number, number, number]; // [x, y, z] in inches
+  projModelRot: [number, number, number]; // [x, y, z] rotation in degrees
   projModelRotY: number; // deg, yaw rotation for 3D model
   projectors: ProjectorInstance[];
   selectedProjectorId: string | null;
@@ -302,6 +303,7 @@ export const INITIAL: ConfigData = {
   projModelUrl: null,
   projModelScale: 1.0,
   projModelOffset: [0, 0, 0],
+  projModelRot: [0, 0, 0],
   projModelRotY: 0,
   projectors: INITIAL_PROJECTORS,
   selectedProjectorId: 'proj-1',
@@ -370,6 +372,8 @@ export const useConfigStore = create<ConfigState>()(
         }
         set({
           ...INITIAL,
+          projModelOffset: [0, 0, 0],
+          projModelRot: [0, 0, 0],
           typeSamples: INITIAL.typeSamples.map((s) => ({ ...s })),
           speakers: INITIAL.speakers.map((s) => ({ ...s })),
           projectors: INITIAL_PROJECTORS.map((p) => ({

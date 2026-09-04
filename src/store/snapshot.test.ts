@@ -77,9 +77,11 @@ describe('validateAndApply', () => {
     expect(validateAndApply({ projModelUrl: null }).projModelUrl).toBe(null);
   });
 
-  it('validates projModelOffset as a 3-tuple of finite numbers', () => {
+  it('validates projModelOffset and projModelRot as a 3-tuple of finite numbers', () => {
     expect(validateAndApply({ projModelOffset: [12, -6, 24] }).projModelOffset).toEqual([12, -6, 24]);
+    expect(validateAndApply({ projModelRot: [45, 90, -30] }).projModelRot).toEqual([45, 90, -30]);
     expect('projModelOffset' in validateAndApply({ projModelOffset: [12, 'invalid', 24] })).toBe(false);
+    expect('projModelRot' in validateAndApply({ projModelRot: [12, 'invalid', 24] })).toBe(false);
     expect('projModelOffset' in validateAndApply({ projModelOffset: [12, 24] })).toBe(false);
   });
 

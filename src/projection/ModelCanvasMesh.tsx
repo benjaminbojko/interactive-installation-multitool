@@ -32,7 +32,7 @@ function ModelRenderer({
 }: ModelRendererProps) {
   const modelScale = useConfigStore((s) => s.projModelScale);
   const modelOffset = useConfigStore((s) => s.projModelOffset);
-  const modelRotY = useConfigStore((s) => s.projModelRotY);
+  const modelRot = useConfigStore((s) => s.projModelRot ?? [0, s.projModelRotY ?? 0, 0]);
 
   const groupRef = useRef<THREE.Group>(null);
 
@@ -72,7 +72,11 @@ function ModelRenderer({
     <group
       ref={groupRef}
       position={[ftFromIn(modelOffset[0]), ftFromIn(modelOffset[1]), ftFromIn(modelOffset[2])]}
-      rotation={[0, (modelRotY * Math.PI) / 180, 0]}
+      rotation={[
+        (modelRot[0] * Math.PI) / 180,
+        (modelRot[1] * Math.PI) / 180,
+        (modelRot[2] * Math.PI) / 180,
+      ]}
     >
       <group position={[-prep.center.x * scale, -prep.center.y * scale + targetHeight / 2, -prep.center.z * scale]} scale={scale}>
         <primitive object={prep.root} />
