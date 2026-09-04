@@ -16,6 +16,7 @@ import {
   BAND_LABEL,
   BAND_TONE,
   fcToColor,
+  focusGradientCss,
   frustumGeometry,
   ftFromIn,
   projectionArrayMetrics,
@@ -175,6 +176,7 @@ export function ProjectionScene() {
     [s.projectors, uRanges],
   );
 
+
   const tone = BAND_TONE[metrics.band];
   const imgCenterY = geom.imageCenterFt;
   const halfW = arrayM.totalWidthFt / 2;
@@ -312,19 +314,36 @@ export function ProjectionScene() {
               {metrics.heightFt.toFixed(1)} ft image
             </span>
           </div>
-          <div className="proj-legend">
-            <div className="proj-legend-bar" style={{ background: rampGradientCss() }} />
-            <div className="proj-legend-ticks">
-              <span>0</span>
-              <span>{FC_MIN_ACCEPTABLE}</span>
-              <span>100</span>
-              <span>{FC_DESIRABLE}</span>
-              <span>800</span>
+          {s.projSurfaceView === 'focus' ? (
+            <div className="proj-legend">
+              <div className="proj-legend-bar" style={{ background: focusGradientCss() }} />
+              <div className="proj-legend-ticks">
+                <span>Blurred</span>
+                <span>Sharp</span>
+                <span>Blurred</span>
+              </div>
+              <div className="proj-legend-caption">
+                Focus band {fmtDist(s.projFocusNearIn, units)}
+                {'–'}
+                {fmtDist(s.projFocusFarIn, units)}, sharpest around{' '}
+                {fmtDist((s.projFocusNearIn + s.projFocusFarIn) / 2, units)}
+              </div>
             </div>
-            <div className="proj-legend-caption">
-              Surface brightness — foot-candles (dim → bright)
+          ) : (
+            <div className="proj-legend">
+              <div className="proj-legend-bar" style={{ background: rampGradientCss() }} />
+              <div className="proj-legend-ticks">
+                <span>0</span>
+                <span>{FC_MIN_ACCEPTABLE}</span>
+                <span>100</span>
+                <span>{FC_DESIRABLE}</span>
+                <span>800</span>
+              </div>
+              <div className="proj-legend-caption">
+                Surface brightness {'—'} foot-candles (dim {'→'} bright)
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <dl className="dvled-metrics">

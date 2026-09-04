@@ -32,11 +32,49 @@ uniform bool uEnableShadows;
 
 uniform sampler2D uContentTex;
 uniform sampler2D uHeatRamp;
-uniform int uViewMode; // 0 = Heatmap, 1 = Content
+uniform int uViewMode; // 0 = Heatmap, 1 = Content, 2 = Focus
 uniform float uScreenGain;
+
+uniform float uFocusNear[MAX_PROJ];
+uniform float uFocusFar[MAX_PROJ];
 
 varying vec3 vWorldPosition;
 varying vec3 vWorldNormal;
+
+// Zoned colour, anchored strictly to the near/far band — not a physical
+// DoF/CoC model, projector lenses don't publish aperture data:
+//   inside [near, far]            -> green, fading to orange in the last 5%
+//                                     approaching either edge
+//   outside, within 10% of an edge -> orange fading to red
+//   beyond 10% outside either edge -> solid red
+// Green never appears outside [near, far].
+vec3 focusColor(float dist, float nearD, float farD) {
+  vec3 sharp = vec3(0.1804, 0.8, 0.4431);
+  vec3 edge = vec3(0.9020, 0.4941, 0.1333);
+  vec3 blur = vec3(0.8784, 0.2549, 0.2549);
+
+  float innerNear = nearD * 1.05;
+  float innerFar = farD * 0.95;
+  float outerNear = nearD * 0.90;
+  float outerFar = farD * 1.10;
+
+  if (dist >= innerNear && dist <= innerFar) return sharp;
+
+  if (dist < nearD) {
+    float t = clamp((nearD - dist) / max(0.0001, nearD - outerNear), 0.0, 1.0);
+    return mix(edge, blur, t);
+  }
+  if (dist > farD) {
+    float t = clamp((dist - farD) / max(0.0001, outerFar - farD), 0.0, 1.0);
+    return mix(edge, blur, t);
+  }
+  if (dist < innerNear) {
+    float t = (innerNear - dist) / max(0.0001, innerNear - nearD);
+    return mix(sharp, edge, t);
+  }
+  float t = (dist - innerFar) / max(0.0001, farD - innerFar);
+  return mix(sharp, edge, t);
+}
 
 float computeBlend(vec2 uv, vec2 slice, float overlap) {
   if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) return 0.0;
@@ -66,6 +104,7 @@ void main() {
   vec3 normal = normalize(vWorldNormal);
   float totalFc = 0.0;
   vec4 accumulatedContent = vec4(0.0);
+  vec3 accumulatedFocus = vec3(0.0);
   float totalWeight = 0.0;
 
   for (int i = 0; i < MAX_PROJ; i++) {
@@ -100,6 +139,7 @@ void main() {
     float globalU = mix(uContentSlice[i].x, uContentSlice[i].y, uv.x);
     vec4 texColor = texture2D(uContentTex, vec2(globalU, uv.y));
     accumulatedContent += texColor * blend;
+    accumulatedFocus += focusColor(dist, uFocusNear[i], uFocusFar[i]) * blend;
     totalWeight += blend;
   }
 
@@ -111,6 +151,13 @@ void main() {
     if (totalWeight > 0.0) {
       vec4 content = accumulatedContent / max(totalWeight, 1.0);
       gl_FragColor = mix(baseColor, content, clamp(totalWeight, 0.0, 1.0));
+    } else {
+      gl_FragColor = baseColor;
+    }
+  } else if (uViewMode == 2) {
+    if (totalWeight > 0.0) {
+      vec3 focus = accumulatedFocus / max(totalWeight, 1.0);
+      gl_FragColor = mix(baseColor, vec4(focus, 1.0), clamp(totalWeight, 0.0, 1.0));
     } else {
       gl_FragColor = baseColor;
     }
@@ -169,6 +216,8 @@ export function createProjectiveMaterial(): THREE.ShaderMaterial {
       uHeatRamp: { value: emptyTex },
       uViewMode: { value: 0 },
       uScreenGain: { value: 1.0 },
+      uFocusNear: { value: new Float32Array(MAX_PROJECTORS) },
+      uFocusFar: { value: new Float32Array(MAX_PROJECTORS) },
     },
   });
 }
@@ -181,7 +230,7 @@ export function updateProjectiveMaterialUniforms(
   overlapFrac: number,
   contentTex: THREE.Texture,
   heatRampTex: THREE.Texture,
-  viewMode: 'heatmap' | 'content',
+  viewMode: 'heatmap' | 'content' | 'focus',
   screenGain: number,
   shadowTextures: (THREE.Texture | null)[],
 ): void {
@@ -192,7 +241,7 @@ export function updateProjectiveMaterialUniforms(
   u.uOverlapFrac.value = overlapFrac;
   u.uContentTex.value = contentTex;
   u.uHeatRamp.value = heatRampTex;
-  u.uViewMode.value = viewMode === 'content' ? 1 : 0;
+  u.uViewMode.value = viewMode === 'content' ? 1 : viewMode === 'focus' ? 2 : 0;
   u.uScreenGain.value = screenGain;
 
   for (let i = 0; i < count; i++) {
@@ -201,6 +250,8 @@ export function updateProjectiveMaterialUniforms(
     (u.uLensPos.value[i] as THREE.Vector3).set(s.lens[0], s.lens[1], s.lens[2]);
     u.uNominalFc.value[i] = s.lumens && s.lumens > 0 ? (nominalFc * (s.lumens / 4000)) : nominalFc;
     (u.uContentSlice.value[i] as THREE.Vector2).set(s.contentSlice[0], s.contentSlice[1]);
+    u.uFocusNear.value[i] = s.focusNearFt;
+    u.uFocusFar.value[i] = s.focusFarFt;
     const shadowTex = shadowTextures[i];
     if (shadowTex) {
       u.uShadowMap.value[i] = shadowTex;

@@ -126,6 +126,8 @@ export interface ProjectorSpec {
   textureMatrix: Mat4;
   contentSlice: [number, number];
   lumens?: number;
+  focusNearFt: number;
+  focusFarFt: number;
 }
 
 export function buildProjectorSpecs(
@@ -147,6 +149,8 @@ export function buildProjectorSpecs(
       projMatrix: proj,
       textureMatrix: texture,
       contentSlice: uRanges[idx] ?? [0, 1],
+      focusNearFt: distFt * 0.85,
+      focusFarFt: distFt * 1.25,
     };
   });
 }
@@ -161,6 +165,8 @@ export interface ProjectorOpticsInstance {
   lensOrigin: LensOrigin;
   lumens: number;
   enabled: boolean;
+  focusNearIn: number;
+  focusFarIn: number;
 }
 
 export function buildProjectorSpecsFromInstances(
@@ -187,6 +193,8 @@ export function buildProjectorSpecsFromInstances(
         textureMatrix: texture,
         contentSlice: uRanges?.[idx] ?? [0, 1],
         lumens: p.lumens,
+        focusNearFt: Math.max(0.1, p.focusNearIn / 12),
+        focusFarFt: p.focusFarIn / 12,
       };
     });
 }

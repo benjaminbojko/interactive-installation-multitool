@@ -6,18 +6,38 @@ import { Card } from '../ui/Card';
 import { fmtDist, fmtLen, fromInches, toInches } from '../ui/units';
 import { distanceFromWidth, widthFromDistance } from './projectionMath';
 
-// Projector / lens presets — common throw ratios and lumen classes.
+// Projector / lens presets — throw ratios pinned to real Barco lenses (full
+// catalog, barco.json: 236 projector bodies / 2111 lens entries), one
+// representative throw value per lens's published min–max zoom range, cross-
+// checked against active (non-EOL) listings only. focusNear/FarPct are % of
+// the resulting throw distance — no projector or lens in the catalog has a
+// depth-of-focus field, so these stay reasoned estimates: shorter lenses sit
+// at a steeper angle of incidence, so the same physical distance error eats a
+// bigger fraction of the (short) throw, hence a tighter band; long-throw
+// lenses tolerate more.
 const PRESETS: {
   label: string;
   throw: number;
   lumens: number;
   resW: number;
   resH: number;
+  focusNearPct: number;
+  focusFarPct: number;
 }[] = [
-  { label: 'Short-throw, 1080p — 0.5 / 4k lm', throw: 0.5, lumens: 4000, resW: 1920, resH: 1080 },
-  { label: 'Standard, 1080p — 1.5 / 5k lm', throw: 1.5, lumens: 5000, resW: 1920, resH: 1080 },
-  { label: 'Install 4K — 1.2 / 10k lm', throw: 1.2, lumens: 10000, resW: 3840, resH: 2160 },
-  { label: 'Long-throw event — 2.5 / 20k lm', throw: 2.5, lumens: 20000, resW: 1920, resH: 1200 },
+  // ILD 0.37 UST, R9803077 — the most common Barco-branded UST throw ratio
+  // (0.37:1 also appears on GLD 0.37-0.40 UST 90°/F80 and G LENS 0.37-0.4:1
+  // UST/G-series). The catalog's single shortest lens, FLD+ 0.26:1 (EN68,
+  // F400-N4K), isn't actually Barco-branded "UST" — it's an outlier, not
+  // representative.
+  { label: 'Ultra-short-throw, 1080p — 0.37 / 4k lm', throw: 0.37, lumens: 4000, resW: 1920, resH: 1080, focusNearPct: 96, focusFarPct: 104 },
+  // GLD 0.8-1.0:1, R98017241, F80-4K7 (throw 0.80–1.06)
+  { label: 'Short-throw, 1080p — 0.9 / 4k lm', throw: 0.9, lumens: 4000, resW: 1920, resH: 1080, focusNearPct: 92, focusFarPct: 108 },
+  // GLD 1.0-1.35:1, R98017221, F80-4K7 (throw 1.00–1.43)
+  { label: 'Install 4K — 1.2 / 10k lm', throw: 1.2, lumens: 10000, resW: 3840, resH: 2160, focusNearPct: 88, focusFarPct: 114 },
+  // GLD 1.35-2.0:1, R98017201, F80-4K7 (throw 1.35–2.12)
+  { label: 'Standard, 1080p — 1.5 / 5k lm', throw: 1.5, lumens: 5000, resW: 1920, resH: 1080, focusNearPct: 85, focusFarPct: 118 },
+  // GLD 2.0-3.0:1, R98017211, F80-4K7 (throw 2.00–3.18)
+  { label: 'Long-throw event — 2.5 / 20k lm', throw: 2.5, lumens: 20000, resW: 1920, resH: 1200, focusNearPct: 80, focusFarPct: 130 },
 ];
 
 function Row({
@@ -133,6 +153,18 @@ export function ProjectionControls() {
             s.set('projResH', p.resH);
             if (s.projResLock) deriveAspectFromRes(p.resW, p.resH);
             setThrow(p.throw);
+
+            // Resolve the throw distance setThrow() above just applied, then
+            // stamp the preset's focus tolerance onto it as absolute inches.
+            const resultDistIn =
+              s.projPin === 'width' ? distanceFromWidth(s.projWidth, p.throw) : s.projDistance;
+            const nearIn = resultDistIn * (p.focusNearPct / 100);
+            const farIn = resultDistIn * (p.focusFarPct / 100);
+            s.set('projFocusNearIn', nearIn);
+            s.set('projFocusFarIn', farIn);
+            if (s.selectedProjectorId) {
+              s.updateProjector(s.selectedProjectorId, { focusNearIn: nearIn, focusFarIn: farIn });
+            }
           }}
         >
           <option value="">Choose…</option>
@@ -476,6 +508,69 @@ export function ProjectionControls() {
       </div>
     </Card>
 
+    <Card title="Focus">
+
+      <Row
+        label="Focus at throw distance"
+        title="One-click default: centre the acceptably-sharp band on the current throw distance, ±15%/+25% (near limits hold tighter than far limits on a real lens)."
+      >
+        <button
+          className="sm"
+          onClick={() => {
+            const near = s.projDistance * 0.85;
+            const far = s.projDistance * 1.25;
+            s.set('projFocusNearIn', near);
+            s.set('projFocusFarIn', far);
+            if (s.selectedProjectorId) {
+              s.updateProjector(s.selectedProjectorId, { focusNearIn: near, focusFarIn: far });
+            }
+          }}
+        >
+          Apply
+        </button>
+      </Row>
+
+      <Row
+        label="Near limit"
+        title="Nearest distance from the lens that still reads as acceptably sharp."
+      >
+        <span className="num-entry">
+          <input
+            type="number"
+            step={0.1}
+            min={0}
+            value={bigVal(s.projFocusNearIn)}
+            onChange={(e) => {
+              const val = bigToIn(Number(e.target.value));
+              s.set('projFocusNearIn', val);
+              if (s.selectedProjectorId) s.updateProjector(s.selectedProjectorId, { focusNearIn: val });
+            }}
+          />
+          <span className="unit">{bigUnit}</span>
+        </span>
+      </Row>
+
+      <Row
+        label="Far limit"
+        title="Farthest distance from the lens that still reads as acceptably sharp."
+      >
+        <span className="num-entry">
+          <input
+            type="number"
+            step={0.1}
+            min={0}
+            value={bigVal(s.projFocusFarIn)}
+            onChange={(e) => {
+              const val = bigToIn(Number(e.target.value));
+              s.set('projFocusFarIn', val);
+              if (s.selectedProjectorId) s.updateProjector(s.selectedProjectorId, { focusFarIn: val });
+            }}
+          />
+          <span className="unit">{bigUnit}</span>
+        </span>
+      </Row>
+    </Card>
+
     <Card title="Environment">
 
       <div
@@ -635,6 +730,12 @@ export function ProjectionControls() {
             onClick={() => s.set('projSurfaceView', 'content')}
           >
             Content
+          </button>
+          <button
+            className={s.projSurfaceView === 'focus' ? 'on' : ''}
+            onClick={() => s.set('projSurfaceView', 'focus')}
+          >
+            Focus
           </button>
         </span>
       </Row>

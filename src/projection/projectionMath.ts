@@ -441,9 +441,12 @@ export function fcToRgb(fc: number): RGB {
   return last.rgb;
 }
 
+function rgbToCss(rgb: RGB): string {
+  return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+}
+
 export function fcToColor(fc: number): string {
-  const [r, g, b] = fcToRgb(fc);
-  return `rgb(${r}, ${g}, ${b})`;
+  return rgbToCss(fcToRgb(fc));
 }
 
 /** CSS gradient stops for the legend bar, spanning 0 → 800 fc. */
@@ -453,6 +456,35 @@ export function rampGradientCss(): string {
     (s) => `${fcToColor(s.fc)} ${Math.round((s.fc / max) * 100)}%`,
   );
   return `linear-gradient(90deg, ${stops.join(', ')})`;
+}
+
+// --- focus / depth-of-field band (Focus surface view) ---
+//
+// Projector spec sheets don't publish aperture/circle-of-confusion, so this
+// isn't a physical depth-of-field model — it's a user-defined "stays sharp"
+// band: green fills the near/far range itself (fading to orange only in the
+// last 5% approaching either edge), orange→red covers the 10% just outside
+// each edge, solid red beyond that. Green never appears outside [near, far].
+// The same zones are duplicated in the GLSL focusColor() (projectiveMaterial.ts)
+// for the live shader; this copy only drives the legend gradient, so keep the
+// two in sync by eye if either changes.
+
+const FOCUS_SHARP_RGB: RGB = [46, 204, 113]; // inside the band
+const FOCUS_EDGE_RGB: RGB = [230, 126, 34]; // at the near/far limit
+const FOCUS_BLUR_RGB: RGB = [224, 65, 65]; // >10% outside the band
+
+/** CSS gradient for the focus legend: flat green across the band, fading to
+ *  orange in the last 5% inside each edge, then to red over the 10% outside it. */
+export function focusGradientCss(): string {
+  const stops = [
+    [0, FOCUS_BLUR_RGB],
+    [10, FOCUS_EDGE_RGB],
+    [15, FOCUS_SHARP_RGB],
+    [85, FOCUS_SHARP_RGB],
+    [90, FOCUS_EDGE_RGB],
+    [100, FOCUS_BLUR_RGB],
+  ] as const;
+  return `linear-gradient(90deg, ${stops.map(([pct, rgb]) => `${rgbToCss(rgb)} ${pct}%`).join(', ')})`;
 }
 
 export * from './projectiveOptics';

@@ -31,7 +31,7 @@ export type CoverageView = 'spl' | 'uniformity';
 export type LedShape = 'square' | 'circle';
 export type MountType = 'wall' | 'stand';
 export type PinMode = 'distance' | 'width';
-export type SurfaceView = 'heatmap' | 'content';
+export type SurfaceView = 'heatmap' | 'content' | 'focus';
 export type LensOrigin = 'center' | 'top';
 export type LedSizeMode = 'dimensions' | 'cabinets';
 export type LedView = 'content' | 'cabinets';
@@ -127,8 +127,10 @@ export interface ConfigState {
   projLensShiftPct: number; // vertical lens shift, % of half image height; +up/−down
   projLensOrigin: LensOrigin; // where 0% shift sits: lens centre, or top-aligned (periscope)
   projTiltDeg: number; // projector tilt; 0 = perpendicular, nonzero = keystone
+  projFocusNearIn: number; // in, near limit of the acceptably-sharp band
+  projFocusFarIn: number; // in, far limit of the acceptably-sharp band
   projShowFigure: boolean; // show a to-scale person for size reference
-  projSurfaceView: SurfaceView; // heatmap or projected content
+  projSurfaceView: SurfaceView; // heatmap, projected content, or focus band
   projCanvasType: 'wall' | 'curved' | 'cylinder' | 'model'; // projection canvas surface
   projCanvasHeight: number; // in, physical screen height for curved canvas
   projCurvedRadius: number; // in, radius for curved screen
@@ -294,6 +296,8 @@ export const INITIAL: ConfigData = {
   projLensShiftPct: 0, // image centred on the lens axis
   projLensOrigin: 'center',
   projTiltDeg: 0, // perpendicular → no keystone
+  projFocusNearIn: 153, // 12.75 ft
+  projFocusFarIn: 225, // 18.75 ft
   projShowFigure: true,
   projSurfaceView: 'heatmap',
   projCanvasType: 'wall',

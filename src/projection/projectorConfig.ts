@@ -19,6 +19,11 @@ export interface ProjectorInstance {
   resH: number;
   lensShiftPct: number;
   lensOrigin: LensOrigin;
+  // Near/far limits (INCHES, absolute distances from the lens) the image
+  // stays acceptably sharp within. Peak sharpness is their midpoint — no
+  // separate "focus distance" to keep in sync.
+  focusNearIn: number;
+  focusFarIn: number;
 }
 
 export function createDefaultProjector(
@@ -40,6 +45,8 @@ export function createDefaultProjector(
     resH: 1080,
     lensShiftPct: 0,
     lensOrigin: 'center',
+    focusNearIn: posIn[2] * 0.85, // focused near the wall by default
+    focusFarIn: posIn[2] * 1.25,
   };
 }
 
