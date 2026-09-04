@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { makeTestPatternCanvas } from '../scene/testPattern';
 import { useConfigStore } from '../store/useConfigStore';
 import type { ProjectorSpec } from './projectiveOptics';
@@ -130,6 +130,7 @@ export function ProjectionCanvasMesh({
   const screenGain = useConfigStore((s) => s.projScreenGain);
   const modelUrl = useConfigStore((s) => s.projModelUrl);
   const modelName = useConfigStore((s) => s.projModelName);
+  const invalidate = useThree((s) => s.invalidate);
 
   const meshRef = useRef<THREE.Mesh>(null);
   const mat = useMemo(() => createProjectiveMaterial(), []);
@@ -172,9 +173,10 @@ export function ProjectionCanvasMesh({
       canvas.getContext('2d')!.drawImage(img, 0, 0);
       contentTex.image = canvas;
       contentTex.needsUpdate = true;
+      invalidate();
     };
     img.src = contentUrl;
-  }, [view, contentUrl, contentTex]);
+  }, [view, contentUrl, contentTex, invalidate]);
 
   const canvasHeightIn = useConfigStore((s) => s.projCanvasHeight);
   const physicalCanvasHeightFt = canvasHeightIn / 12;
@@ -212,6 +214,7 @@ export function ProjectionCanvasMesh({
       screenGain,
       shadowTextures,
     );
+    invalidate();
   }, [
     mat,
     specs,
@@ -223,6 +226,7 @@ export function ProjectionCanvasMesh({
     view,
     screenGain,
     shadowTextures,
+    invalidate,
   ]);
 
   if (canvasType === 'model' && modelUrl) {
