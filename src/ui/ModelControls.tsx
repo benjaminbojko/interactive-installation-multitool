@@ -1,4 +1,4 @@
-// UI control for uploading custom 3D models (.glb, .gltf) and adjusting transform.
+// UI controls for opening local 3D models (.glb, .gltf, .fbx) and adjusting transform.
 
 import { useRef } from 'react';
 import { useConfigStore, type Units } from '../store/useConfigStore';
@@ -120,7 +120,7 @@ function ModelActions({ url, onOpen, onSample, onClear }: {
   );
 }
 
-export function ModelUpload() {
+export function ModelControls() {
   const inputRef = useRef<HTMLInputElement>(null);
   const units = useConfigStore((s) => s.units);
   const modelUrl = useConfigStore((s) => s.projModelUrl);
@@ -130,7 +130,7 @@ export function ModelUpload() {
   const set = useConfigStore((s) => s.set);
 
   return (
-    <div className="model-upload" title="Loaded into memory only — nothing uploaded to servers.">
+    <div className="model-panel" title="Loaded into memory only — nothing leaves your browser.">
       <input ref={inputRef} type="file" accept=".glb,.gltf,.fbx" hidden
         onChange={(e) => selectModelFile(e.target.files?.[0], modelUrl, set)} />
       <ModelActions url={modelUrl} onOpen={() => inputRef.current?.click()}

@@ -1,6 +1,6 @@
 import { useConfigStore } from '../store/useConfigStore';
 import { ContentUpload } from '../ui/ContentUpload';
-import { ModelUpload } from '../ui/ModelUpload';
+import { ModelControls } from '../ui/ModelControls';
 import { ProjectorListCard } from './ProjectorListCard';
 import { Card } from '../ui/Card';
 import { fmtDist, fmtLen, fromInches, toInches } from '../ui/units';
@@ -529,7 +529,7 @@ export function ProjectionControls() {
         </span>
       </Row>
 
-      {s.projCanvasType === 'model' && <ModelUpload />}
+      {s.projCanvasType === 'model' && <ModelControls />}
 
       {s.projCanvasType === 'curved' && (
         <>
