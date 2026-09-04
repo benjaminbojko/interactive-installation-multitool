@@ -76,12 +76,6 @@ export function ModelUpload() {
     set('projCanvasType', 'model');
   }
 
-  function handleReset() {
-    set('projModelScale', 1.0);
-    set('projModelRotY', 0);
-    set('projModelOffset', [0, 0, 0]);
-  }
-
   return (
     <div className="model-upload" title="Loaded into memory only — nothing uploaded to servers.">
       <input
@@ -98,11 +92,6 @@ export function ModelUpload() {
         {!modelUrl && (
           <button className="ghost" onClick={handleSampleModel}>
             Sample Model
-          </button>
-        )}
-        {modelUrl && (
-          <button className="ghost" onClick={handleReset}>
-            Reset
           </button>
         )}
         {modelUrl && (

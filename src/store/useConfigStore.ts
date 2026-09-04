@@ -180,6 +180,7 @@ export interface ConfigState {
   // --- actions ---
   set: <K extends keyof ConfigState>(key: K, value: ConfigState[K]) => void;
   setContent: (url: string | null) => void;
+  resetToDefaults: () => void;
   applyRecommendedMount: () => void;
   getVerdict: () => Verdict;
   getLegibility: () => LegibilityReport;
@@ -196,6 +197,7 @@ export type ConfigData = Omit<
   ConfigState,
   | 'set'
   | 'setContent'
+  | 'resetToDefaults'
   | 'applyRecommendedMount'
   | 'getVerdict'
   | 'getLegibility'
@@ -355,6 +357,28 @@ export const useConfigStore = create<ConfigState>()(
 
       set: (key, value) => set({ [key]: value } as Partial<ConfigState>),
       setContent: (url) => set({ contentUrl: url }),
+      resetToDefaults: () => {
+        try {
+          if (typeof localStorage !== 'undefined') {
+            localStorage.removeItem('iimt-config');
+          }
+        } catch {
+          // ignore
+        }
+        if (typeof window !== 'undefined' && window.location.hash) {
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+        set({
+          ...INITIAL,
+          typeSamples: INITIAL.typeSamples.map((s) => ({ ...s })),
+          speakers: INITIAL.speakers.map((s) => ({ ...s })),
+          projectors: INITIAL_PROJECTORS.map((p) => ({
+            ...p,
+            posIn: [...p.posIn],
+            rotDeg: [...p.rotDeg],
+          })),
+        });
+      },
 
       addProjector: (preset) => {
         const s = get();

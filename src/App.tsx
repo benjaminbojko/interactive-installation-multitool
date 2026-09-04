@@ -3,6 +3,7 @@ import { PERSONAS } from './ergonomics/constants';
 import { useConfigStore, type AppTab } from './store/useConfigStore';
 import { consumeShareHash } from './share/shareUrl';
 import { AboutModal } from './ui/AboutModal';
+import { ResetModal } from './ui/ResetModal';
 import { ControlPanel } from './ui/ControlPanel';
 import { HelpPanel } from './ui/HelpPanel';
 import { SaveMenu } from './ui/SaveMenu';
@@ -45,6 +46,7 @@ export default function App() {
   const fpFov = useConfigStore((s) => s.fpFov);
   const set = useConfigStore((s) => s.set);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
 
   // A share link overrides the autosaved state for this visit, then clears the hash.
   useEffect(() => {
@@ -118,6 +120,13 @@ export default function App() {
           )}
           <UnitToggle />
           <SaveMenu />
+          <button
+            className="reset-btn"
+            title="Reset all settings to defaults"
+            onClick={() => setResetOpen(true)}
+          >
+            Reset
+          </button>
           <button className="about-btn" onClick={() => setAboutOpen(true)}>
             About
           </button>
@@ -125,6 +134,7 @@ export default function App() {
       </header>
 
       {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
+      {resetOpen && <ResetModal onClose={() => setResetOpen(false)} />}
 
       <main className="layout">
         <aside className="sidebar">
