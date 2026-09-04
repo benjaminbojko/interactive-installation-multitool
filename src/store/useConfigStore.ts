@@ -10,6 +10,7 @@ import {
   type TransformGizmoMode,
   type TransformGizmoSpace,
   INITIAL_PROJECTORS,
+  PROJECTOR_SHARED_KEYS,
   createDefaultProjector,
   arrangeInArray,
 } from '../projection/projectorConfig';
@@ -199,6 +200,7 @@ export interface ConfigState {
   updateProjector: (id: string, partial: Partial<ProjectorInstance>) => void;
   selectProjector: (id: string | null) => void;
   arrangeProjectorsInArray: (count: number, overlapPct: number) => void;
+  applyProjectorToAll: (id: string) => void;
 }
 
 /** The serializable fields only — the store minus its action functions. This is
@@ -216,6 +218,7 @@ export type ConfigData = Omit<
   | 'updateProjector'
   | 'selectProjector'
   | 'arrangeProjectorsInArray'
+  | 'applyProjectorToAll'
 >;
 
 export const INITIAL: ConfigData = {
@@ -450,6 +453,18 @@ export const useConfigStore = create<ConfigState>()(
         },
 
         selectProjector: (id) => set({ selectedProjectorId: id }),
+
+        applyProjectorToAll: (id) => {
+          const s = get();
+          const source = s.projectors.find((p) => p.id === id);
+          if (!source) return;
+          const shared = Object.fromEntries(
+            PROJECTOR_SHARED_KEYS.map((key) => [key, source[key]]),
+          ) as Partial<ProjectorInstance>;
+          set({
+            projectors: s.projectors.map((p) => (p.id === id ? p : { ...p, ...shared })),
+          });
+        },
 
         arrangeProjectorsInArray: (count, overlapPct) => {
           const s = get();

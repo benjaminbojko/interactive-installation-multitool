@@ -42,25 +42,34 @@ export function ProjectorListCard() {
     <Card
       title={`Projectors (${s.projectors.length}/4)`}
       headerAction={
-        <div style={{ display: 'flex', gap: 6 }}>
-          <button
-            className="sm"
-            disabled={s.projectors.length >= 4}
-            onClick={() => s.addProjector()}
-            title="Add a projector (maximum 4 units)"
-          >
-            + Add
-          </button>
-          <button
-            className="sm"
-            onClick={() => s.arrangeProjectorsInArray(s.projectors.length, s.projArrayOverlapPct)}
-            title="Arrange active projectors in a uniform horizontal array"
-          >
-            Array
-          </button>
-        </div>
+        <button
+          className="sm"
+          disabled={s.projectors.length >= 4}
+          onClick={() => s.addProjector()}
+          title="Add a projector (maximum 4 units)"
+        >
+          + Add
+        </button>
       }
     >
+
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+        <button
+          className="sm"
+          onClick={() => s.arrangeProjectorsInArray(s.projectors.length, s.projArrayOverlapPct)}
+          title="Arrange active projectors in a uniform horizontal array"
+        >
+          Array
+        </button>
+        <button
+          className="sm"
+          disabled={!sel || s.projectors.length < 2}
+          onClick={() => sel && s.applyProjectorToAll(sel.id)}
+          title="Copy the selected projector's throw ratio, lumens, resolution, lens shift/origin, and focus limits to every other projector (position and rotation stay per-projector)"
+        >
+          Apply to all
+        </button>
+      </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }}>
         {s.projectors.map((p, idx) => {

@@ -26,6 +26,22 @@ export interface ProjectorInstance {
   focusFarIn: number;
 }
 
+// Optical/output settings that describe the projector unit itself, not where
+// it sits in the room. "Apply to all" copies these across instances; posIn,
+// rotDeg, id, name, and enabled stay per-projector.
+export const PROJECTOR_SHARED_KEYS = [
+  'throwRatio',
+  'lumens',
+  'aspectW',
+  'aspectH',
+  'resW',
+  'resH',
+  'lensShiftPct',
+  'lensOrigin',
+  'focusNearIn',
+  'focusFarIn',
+] as const satisfies readonly (keyof ProjectorInstance)[];
+
 export function createDefaultProjector(
   id: string,
   name: string,
