@@ -14,6 +14,8 @@ import {
   arrangeInArray,
 } from '../projection/projectorConfig';
 import { dataFields, validateAndApply, withoutContent } from './snapshot';
+import { deleteModelBlob } from './modelBlobStore';
+import { restoreModel } from './modelPersistence';
 
 /** Bumped only when a field's meaning changes incompatibly. Stamped into every
  *  saved snapshot (localStorage, JSON file, share link). Restore is best-effort
@@ -35,6 +37,7 @@ export type SurfaceView = 'heatmap' | 'content' | 'focus';
 export type LensOrigin = 'center' | 'top';
 export type LedSizeMode = 'dimensions' | 'cabinets';
 export type LedView = 'content' | 'cabinets';
+export type ModelSource = 'sample' | 'upload' | null;
 
 export interface ConfigState {
   // --- screen ---
@@ -135,7 +138,10 @@ export interface ConfigState {
   projCanvasHeight: number; // in, physical screen height for curved canvas
   projCurvedRadius: number; // in, radius for curved screen
   projCurvedArcDeg: number; // deg, arc span for curved screen
-  projModelUrl: string | null; // blob or asset URL for 3D model canvas
+  projModelUrl: string | null; // blob or asset URL for 3D model canvas (session-only, rebuilt on load)
+  projModelId: string | null; // IndexedDB key for an uploaded model's blob
+  projModelName: string | null; // original filename — drives format detection and restore
+  projModelSource: ModelSource; // where projModelUrl came from, so reload can rebuild it
   projModelScale: number; // scale multiplier for 3D model
   projModelOffset: [number, number, number]; // [x, y, z] in inches
   projModelRot: [number, number, number]; // [x, y, z] rotation in degrees
@@ -305,6 +311,9 @@ export const INITIAL: ConfigData = {
   projCurvedRadius: 144, // 12 ft radius
   projCurvedArcDeg: 60, // 60 degree arc
   projModelUrl: null,
+  projModelId: null,
+  projModelName: null,
+  projModelSource: null,
   projModelScale: 1.0,
   projModelOffset: [0, 0, 0],
   projModelRot: [0, 0, 0],
@@ -364,6 +373,11 @@ export const useConfigStore = create<ConfigState>()(
       set: (key, value) => set({ [key]: value } as Partial<ConfigState>),
       setContent: (url) => set({ contentUrl: url }),
       resetToDefaults: () => {
+        const s = get();
+        if (s.projModelUrl?.startsWith('blob:')) URL.revokeObjectURL(s.projModelUrl);
+        if (s.projModelSource === 'upload' && s.projModelId) {
+          void deleteModelBlob(s.projModelId).catch(() => {});
+        }
         try {
           if (typeof localStorage !== 'undefined') {
             localStorage.removeItem('iimt-config');
@@ -499,6 +513,11 @@ export const useConfigStore = create<ConfigState>()(
         ...current,
         ...validateAndApply(persisted),
       }),
+      // Rebuild projModelUrl (deliberately never persisted) from whatever produced
+      // it — the sample asset path, or an uploaded blob recovered from IndexedDB.
+      onRehydrateStorage: () => (state) => {
+        if (state) restoreModel(state);
+      },
     },
   ),
 );

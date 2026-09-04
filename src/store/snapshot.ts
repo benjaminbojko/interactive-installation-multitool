@@ -100,8 +100,17 @@ export function validateAndApply(raw: unknown): Partial<ConfigData> {
     if (!(key in src)) continue;
     const val = src[key as string];
 
-    if (key === 'contentUrl' || key === 'projModelUrl') {
+    if (
+      key === 'contentUrl' ||
+      key === 'projModelUrl' ||
+      key === 'projModelId' ||
+      key === 'projModelName'
+    ) {
       if (val === null || typeof val === 'string') out[key] = val;
+      continue;
+    }
+    if (key === 'projModelSource') {
+      if (val === null || val === 'sample' || val === 'upload') out[key] = val;
       continue;
     }
     if (key === 'projModelOffset' || key === 'projModelRot') {

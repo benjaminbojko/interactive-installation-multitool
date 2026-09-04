@@ -1,26 +1,52 @@
 // UI controls for opening local 3D models (.glb, .gltf, .fbx) and adjusting transform.
 
 import { useRef } from 'react';
-import { useConfigStore, type Units } from '../store/useConfigStore';
+import { deleteModelBlob, saveModelBlob } from '../store/modelBlobStore';
+import { sampleModelUrl } from '../store/modelPersistence';
+import { useConfigStore, type ModelSource, type Units } from '../store/useConfigStore';
 import { fmtLen, fromInches, toInches } from './units';
 
-function selectModelFile(file: File | undefined, currentUrl: string | null, set: (k: any, v: any) => void) {
-  if (!file) return;
-  if (currentUrl?.startsWith('blob:')) URL.revokeObjectURL(currentUrl);
-  set('projModelUrl', URL.createObjectURL(file));
-  set('projCanvasType', 'model');
+interface LoadedModel {
+  url: string | null;
+  id: string | null;
+  source: ModelSource;
 }
 
-function clearModel(currentUrl: string | null, set: (k: any, v: any) => void) {
-  if (currentUrl?.startsWith('blob:')) URL.revokeObjectURL(currentUrl);
+type SetFn = (k: any, v: any) => void;
+
+function releasePrevious(current: LoadedModel) {
+  if (current.url?.startsWith('blob:')) URL.revokeObjectURL(current.url);
+  if (current.source === 'upload' && current.id) void deleteModelBlob(current.id).catch(() => {});
+}
+
+function selectModelFile(file: File | undefined, current: LoadedModel, set: SetFn) {
+  if (!file) return;
+  releasePrevious(current);
+  const id = `model-${Date.now()}`;
+  set('projModelUrl', URL.createObjectURL(file));
+  set('projModelId', id);
+  set('projModelName', file.name);
+  set('projModelSource', 'upload');
+  set('projCanvasType', 'model');
+  void saveModelBlob(id, file).catch(() => {});
+}
+
+function clearModel(current: LoadedModel, set: SetFn) {
+  releasePrevious(current);
   set('projModelUrl', null);
+  set('projModelId', null);
+  set('projModelName', null);
+  set('projModelSource', null);
   set('projCanvasType', 'wall');
 }
 
-function loadSampleModel(set: (k: any, v: any) => void) {
-  const base = import.meta.env.BASE_URL || '/';
-  const cleanBase = base.endsWith('/') ? base : `${base}/`;
-  set('projModelUrl', `${cleanBase}adult.glb`);
+function loadSampleModel(current: LoadedModel, set: SetFn) {
+  releasePrevious(current);
+  const name = 'adult.glb';
+  set('projModelUrl', sampleModelUrl(name));
+  set('projModelId', null);
+  set('projModelName', name);
+  set('projModelSource', 'sample');
   set('projCanvasType', 'model');
 }
 
@@ -124,17 +150,20 @@ export function ModelControls() {
   const inputRef = useRef<HTMLInputElement>(null);
   const units = useConfigStore((s) => s.units);
   const modelUrl = useConfigStore((s) => s.projModelUrl);
+  const modelId = useConfigStore((s) => s.projModelId);
+  const modelSource = useConfigStore((s) => s.projModelSource);
   const modelScale = useConfigStore((s) => s.projModelScale);
   const modelOffset = useConfigStore((s) => s.projModelOffset);
   const modelRot = useConfigStore((s) => s.projModelRot ?? [0, s.projModelRotY ?? 0, 0]);
   const set = useConfigStore((s) => s.set);
+  const current: LoadedModel = { url: modelUrl, id: modelId, source: modelSource };
 
   return (
     <div className="model-panel" title="Loaded into memory only — nothing leaves your browser.">
       <input ref={inputRef} type="file" accept=".glb,.gltf,.fbx" hidden
-        onChange={(e) => selectModelFile(e.target.files?.[0], modelUrl, set)} />
+        onChange={(e) => selectModelFile(e.target.files?.[0], current, set)} />
       <ModelActions url={modelUrl} onOpen={() => inputRef.current?.click()}
-        onSample={() => loadSampleModel(set)} onClear={() => clearModel(modelUrl, set)} />
+        onSample={() => loadSampleModel(current, set)} onClear={() => clearModel(current, set)} />
       {modelUrl && (
         <div className="model-controls">
           <RotationControls rot={modelRot} set={set} />

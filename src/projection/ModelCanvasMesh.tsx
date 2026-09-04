@@ -15,6 +15,7 @@ function ftFromIn(inches: number): number {
 
 interface ModelCanvasMeshProps {
   modelUrl: string;
+  modelName?: string | null;
   mat: THREE.ShaderMaterial;
   shadowPass: ProjectorShadowPass;
   specs: ProjectorSpec[];
@@ -96,7 +97,10 @@ function FbxInner(props: ModelCanvasMeshProps) {
 }
 
 function ModelInner(props: ModelCanvasMeshProps) {
-  const isFbx = props.modelUrl.toLowerCase().includes('.fbx');
+  // A blob: URL never carries the original filename, so prefer the tracked name
+  // (set on upload, restored from IndexedDB on reload) and fall back to the URL
+  // for asset-path models like the bundled sample.
+  const isFbx = (props.modelName ?? props.modelUrl).toLowerCase().includes('.fbx');
   return isFbx ? <FbxInner {...props} /> : <GltfInner {...props} />;
 }
 

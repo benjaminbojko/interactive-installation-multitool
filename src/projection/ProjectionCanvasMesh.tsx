@@ -129,6 +129,7 @@ export function ProjectionCanvasMesh({
   const aspectH = useConfigStore((s) => s.projAspectH);
   const screenGain = useConfigStore((s) => s.projScreenGain);
   const modelUrl = useConfigStore((s) => s.projModelUrl);
+  const modelName = useConfigStore((s) => s.projModelName);
 
   const meshRef = useRef<THREE.Mesh>(null);
   const mat = useMemo(() => createProjectiveMaterial(), []);
@@ -228,6 +229,7 @@ export function ProjectionCanvasMesh({
     return (
       <ModelCanvasMesh
         modelUrl={modelUrl}
+        modelName={modelName}
         mat={mat}
         shadowPass={shadowPass}
         specs={specs}

@@ -103,4 +103,30 @@ describe('validateAndApply', () => {
     expect('contentUrl' in stripped).toBe(false);
     expect('projModelUrl' in stripped).toBe(false);
   });
+
+  it('withoutContent keeps the model id/name/source needed to restore on reload', () => {
+    const stripped = withoutContent({
+      projModelUrl: 'blob:y',
+      projModelId: 'model-1',
+      projModelName: 'scan.fbx',
+      projModelSource: 'upload',
+    });
+    expect(stripped.projModelId).toBe('model-1');
+    expect(stripped.projModelName).toBe('scan.fbx');
+    expect(stripped.projModelSource).toBe('upload');
+  });
+
+  it('validates projModelId, projModelName and projModelSource', () => {
+    expect(validateAndApply({ projModelId: 'model-1' }).projModelId).toBe('model-1');
+    expect(validateAndApply({ projModelId: null }).projModelId).toBe(null);
+    expect('projModelId' in validateAndApply({ projModelId: 42 })).toBe(false);
+
+    expect(validateAndApply({ projModelName: 'scan.fbx' }).projModelName).toBe('scan.fbx');
+    expect('projModelName' in validateAndApply({ projModelName: 42 })).toBe(false);
+
+    expect(validateAndApply({ projModelSource: 'upload' }).projModelSource).toBe('upload');
+    expect(validateAndApply({ projModelSource: 'sample' }).projModelSource).toBe('sample');
+    expect(validateAndApply({ projModelSource: null }).projModelSource).toBe(null);
+    expect('projModelSource' in validateAndApply({ projModelSource: 'bogus' })).toBe(false);
+  });
 });
