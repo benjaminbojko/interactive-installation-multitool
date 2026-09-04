@@ -3,7 +3,7 @@
 // scene is ever mounted at a time (App.tsx renders one tab), so a module-level
 // singleton is simpler than threading a ref/context through five scene files.
 
-type Registration = { domElement: HTMLCanvasElement; invalidate: () => void };
+type Registration = { capture: () => Promise<Blob | null> };
 
 let active: Registration | null = null;
 
@@ -14,17 +14,6 @@ export function registerActiveCanvas(reg: Registration): () => void {
   };
 }
 
-// Requests a fresh render (scenes use frameloop="demand", so the buffer can be
-// stale) and waits two frames before reading pixels, so the render has landed.
 export function captureActiveCanvasScreenshot(): Promise<Blob | null> {
-  const reg = active;
-  if (!reg) return Promise.resolve(null);
-  reg.invalidate();
-  return new Promise((resolve) => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        reg.domElement.toBlob((blob) => resolve(blob), 'image/png');
-      });
-    });
-  });
+  return active ? active.capture() : Promise.resolve(null);
 }
